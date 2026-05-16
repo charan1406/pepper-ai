@@ -1,0 +1,27 @@
+# Pepper AI — Python Dependencies
+# Install: pip install -r requirements.txt
+
+# STT (Speech-to-Text)
+faster-whisper>=1.0
+numpy
+
+# VAD (Voice Activity Detection) — loaded via torch.hub
+torch>=2.0
+torchaudio>=2.0
+
+# Vision — Object Detection
+ultralytics>=8.3
+opencv-python>=4.8
+
+# Vision — Face Recognition (InsightFace, no compilation needed)
+insightface>=0.7
+onnxruntime>=1.15
+
+# Face Recognition — Legacy fallback (optional, requires cmake + dlib)
+# pip install dlib face-recognition
+
+# Behavior Tree
+py-trees>=2.3
+
+# TTS (optional, for edge-tts fallback)
+# pip install edge-tts

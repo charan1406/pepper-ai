@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Models (large files, download separately)
+*.gguf
+*.pt
+*.onnx
+*.npy
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude Code
+.claude/
+CLAUDE.md
+
+# Logs and temp
+logs/
+*.log
+/tmp/
+*.tmp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets / personal config
+.env
+config.local.py
+pepper_session.conf
+
+# InsightFace models (downloaded on first run)
+.insightface/
+
+# Obsidian config (personal)
+.obsidian/
+
+# Node (simulator web frontend)
+simulator/web/node_modules/
+simulator/web/dist/
+
+# Cached models
+*.zip

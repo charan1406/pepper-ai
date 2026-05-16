@@ -1,0 +1,20 @@
+#!/bin/bash
+# Pepper AI — Launch Everything in Kitty tabs
+
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "============================================"
+echo "  PEPPER AI — Full Stack Launch"
+echo "============================================"
+echo ""
+echo "  Opening Kitty with 4 tabs..."
+echo ""
+echo "  Tab 1: Simulator Bridge    :5001"
+echo "  Tab 2: Deep Brain (4B GPU) :8080"
+echo "  Tab 3: Fast Brain (0.8B)   :8081"
+echo "  Tab 4: 3D Web Frontend     :5002"
+echo ""
+echo "  3D UI: http://localhost:5002"
+echo "============================================"
+
+kitty --session "$PROJECT_DIR/pepper_session.conf"

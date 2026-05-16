@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pepper Chat — Brain Tester</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #020617; color: #e2e8f0; font-family: 'IBM Plex Sans', system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+
+  .header { padding: 14px 20px; border-bottom: 1px solid #1e293b; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .title { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+  .brain-toggle { display: flex; gap: 4px; margin-left: 16px; background: #0f172a; border-radius: 8px; padding: 3px; }
+  .brain-btn { padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; background: transparent; color: #64748b; transition: all 0.15s; }
+  .brain-btn.active-fast { background: #22d3ee22; color: #22d3ee; outline: 1px solid #22d3ee44; }
+  .brain-btn.active-deep { background: #a78bfa22; color: #a78bfa; outline: 1px solid #a78bfa44; }
+  .small-btn { padding: 6px 12px; background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; color: #64748b; font-size: 11px; cursor: pointer; font-family: inherit; }
+  .small-btn:hover { color: #94a3b8; }
+
+  .system-box { padding: 12px 20px; border-bottom: 1px solid #1e293b; background: #0a0f1a; display: none; }
+  .system-box.visible { display: block; }
+  .system-box label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; display: block; margin-bottom: 6px; }
+  .system-box textarea { width: 100%; background: #020617; border: 1px solid #1e293b; border-radius: 6px; color: #94a3b8; font-size: 12px; padding: 10px 12px; resize: vertical; font-family: 'IBM Plex Mono', monospace; line-height: 1.5; outline: none; }
+
+  .messages { flex: 1; overflow: auto; padding: 20px 20px 8px; }
+  .empty { text-align: center; color: #334155; margin-top: 80px; }
+  .empty .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty .label { font-size: 15px; font-weight: 500; }
+  .empty .sub { font-size: 12px; margin-top: 6px; }
+
+  .msg { display: flex; margin-bottom: 12px; }
+  .msg.user { justify-content: flex-end; }
+  .msg.bot { justify-content: flex-start; }
+  .bubble { max-width: 85%; padding: 12px 16px; position: relative; }
+  .msg.user .bubble { background: #1e293b; border: 1px solid #334155; border-radius: 16px 16px 4px 16px; }
+  .msg.bot .bubble { background: #0f172a; border-radius: 16px 16px 16px 4px; }
+  .msg.bot.fast .bubble { border: 1px solid #22d3ee33; }
+  .msg.bot.deep .bubble { border: 1px solid #a78bfa33; }
+
+  .brain-tag { font-size: 11px; margin-bottom: 6px; font-weight: 600; letter-spacing: 0.05em; }
+  .brain-tag.fast { color: #22d3ee; }
+  .brain-tag.deep { color: #a78bfa; }
+  .brain-tag .stats { color: #64748b; font-weight: 400; margin-left: 8px; }
+
+  .think-toggle { font-size: 11px; color: #64748b; cursor: pointer; user-select: none; margin-bottom: 8px; }
+  .think-content { font-size: 11px; color: #475569; white-space: pre-wrap; word-break: break-word; margin-top: 6px; padding: 8px 10px; background: #020617; border-radius: 6px; max-height: 150px; overflow: auto; border: 1px solid #1e293b; display: none; }
+  .think-content.open { display: block; }
+
+  .content { color: #f1f5f9; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+
+  .loading { display: flex; gap: 6px; padding: 8px 16px; font-size: 13px; align-items: center; }
+  .loading .dot { width: 6px; height: 6px; border-radius: 50%; animation: pulse 1s ease-in-out infinite; opacity: 0.4; }
+  .loading .dot:nth-child(2) { animation-delay: 0.15s; }
+  .loading .dot:nth-child(3) { animation-delay: 0.3s; }
+  .loading .label { margin-left: 4px; font-size: 12px; color: #64748b; }
+  @keyframes pulse { 0%,100% { opacity:0.3; transform:scale(0.8); } 50% { opacity:1; transform:scale(1.2); } }
+
+  .input-bar { padding: 12px 20px 16px; border-top: 1px solid #1e293b; display: flex; gap: 10px; flex-shrink: 0; }
+  .input-bar input { flex: 1; padding: 12px 16px; background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; color: #f1f5f9; font-size: 14px; outline: none; font-family: inherit; }
+  .input-bar input::placeholder { color: #475569; }
+  .send-btn { padding: 12px 20px; border-radius: 10px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.15s; font-family: inherit; }
+  .send-btn.fast { background: #22d3ee; color: #020617; }
+  .send-btn.deep { background: #a78bfa; color: #020617; }
+  .send-btn:disabled { background: #1e293b; color: #475569; cursor: default; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="title">🤖 Pepper Chat</div>
+  <div class="brain-toggle">
+    <button class="brain-btn active-fast" id="btn-fast" onclick="setBrain('fast')">⚡ 0.8B Fast</button>
+    <button class="brain-btn" id="btn-deep" onclick="setBrain('deep')">🧠 4B Deep</button>
+  </div>
+  <button class="small-btn" style="margin-left:auto" onclick="toggleSystem()">System Prompt</button>
+  <button class="small-btn" onclick="clearChat()">Clear</button>
+</div>
+
+<div class="system-box" id="system-box">
+  <label>System Prompt (sent with every request)</label>
+  <textarea id="system-prompt" rows="4">You are Pepper, a friendly robot assistant in a university lab. Keep responses conversational and brief (2-3 sentences).</textarea>
+</div>
+
+<div class="messages" id="messages">
+  <div class="empty" id="empty-state">
+    <div class="icon">🤖</div>
+    <div class="label">Start chatting with Pepper</div>
+    <div class="sub" id="empty-sub">Using ⚡ 0.8B Fast on port 8091</div>
+  </div>
+</div>
+
+<div class="input-bar">
+  <input type="text" id="input" placeholder="Message 0.8B Fast..." onkeydown="if(event.key==='Enter')sendMessage()">
+  <button class="send-btn fast" id="send-btn" onclick="sendMessage()">Send</button>
+</div>
+
+<script>
+const BRAINS = {
+  fast: { label: '0.8B Fast', port: 8091, color: '#22d3ee', icon: '⚡', cls: 'fast' },
+  deep: { label: '4B Deep', port: 8090, color: '#a78bfa', icon: '🧠', cls: 'deep' },
+};
+
+let brain = 'fast';
+let messages = [];
+let loading = false;
+
+function setBrain(b) {
+  brain = b;
+  document.getElementById('btn-fast').className = 'brain-btn' + (b === 'fast' ? ' active-fast' : '');
+  document.getElementById('btn-deep').className = 'brain-btn' + (b === 'deep' ? ' active-deep' : '');
+  document.getElementById('input').placeholder = `Message ${BRAINS[b].label}...`;
+  document.getElementById('send-btn').className = `send-btn ${b}`;
+  document.getElementById('empty-sub').textContent = `Using ${BRAINS[b].icon} ${BRAINS[b].label} on port ${BRAINS[b].port}`;
+  document.getElementById('input').focus();
+}
+
+function toggleSystem() {
+  document.getElementById('system-box').classList.toggle('visible');
+}
+
+function clearChat() {
+  messages = [];
+  document.getElementById('messages').innerHTML = `
+    <div class="empty" id="empty-state">
+      <div class="icon">🤖</div>
+      <div class="label">Start chatting with Pepper</div>
+      <div class="sub" id="empty-sub">Using ${BRAINS[brain].icon} ${BRAINS[brain].label} on port ${BRAINS[brain].port}</div>
+    </div>`;
+}
+
+function addMessage(role, content, brainKey, thinking, stats) {
+  const b = BRAINS[brainKey] || {};
+  const container = document.getElementById('messages');
+  const empty = document.getElementById('empty-state');
+  if (empty) empty.remove();
+
+  const div = document.createElement('div');
+  div.className = `msg ${role === 'user' ? 'user' : 'bot ' + (b.cls || '')}`;
+
+  let html = '<div class="bubble">';
+
+  if (role !== 'user' && b.label) {
+    html += `<div class="brain-tag ${b.cls}">${b.icon} ${b.label}`;
+    if (stats) html += `<span class="stats">${stats.tokPerSec} tok/s · ${stats.wall}s · ${stats.thinkChars} think chars</span>`;
+    html += '</div>';
+  }
+
+  if (thinking) {
+    const id = 'think-' + Date.now();
+    html += `<div class="think-toggle" onclick="document.getElementById('${id}').classList.toggle('open')">▶ reasoning (${thinking.length} chars)</div>`;
+    html += `<pre class="think-content" id="${id}">${escHtml(thinking)}</pre>`;
+  }
+
+  html += `<div class="content">${escHtml(content || '(empty response)')}</div>`;
+  html += '</div>';
+  div.innerHTML = html;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function showLoading() {
+  const b = BRAINS[brain];
+  const container = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.id = 'loading-indicator';
+  div.className = 'loading';
+  div.innerHTML = `
+    <span class="dot" style="background:${b.color}"></span>
+    <span class="dot" style="background:${b.color}"></span>
+    <span class="dot" style="background:${b.color}"></span>
+    <span class="label">${b.label} thinking...</span>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function hideLoading() {
+  const el = document.getElementById('loading-indicator');
+  if (el) el.remove();
+}
+
+async function sendMessage() {
+  const input = document.getElementById('input');
+  const text = input.value.trim();
+  if (!text || loading) return;
+
+  input.value = '';
+  loading = true;
+  document.getElementById('send-btn').disabled = true;
+
+  messages.push({ role: 'user', content: text });
+  addMessage('user', text);
+  showLoading();
+
+  const b = BRAINS[brain];
+  const sys = document.getElementById('system-prompt').value;
+  const apiMsgs = [{ role: 'system', content: sys }];
+  messages.slice(-10).forEach(m => apiMsgs.push({ role: m.role, content: m.content }));
+
+  try {
+    const t0 = performance.now();
+    const resp = await fetch(`http://localhost:${b.port}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: apiMsgs, max_tokens: 1500 }),
+    });
+    const data = await resp.json();
+    const wall = ((performance.now() - t0) / 1000).toFixed(1);
+    const msg = data.choices?.[0]?.message || {};
+    const timings = data.timings || {};
+
+    const content = msg.content || '';
+    messages.push({ role: 'assistant', content });
+
+    hideLoading();
+    addMessage('assistant', content, brain, msg.reasoning_content || null, {
+      tokPerSec: (timings.predicted_per_second || 0).toFixed(0),
+      wall,
+      thinkChars: (msg.reasoning_content || '').length,
+    });
+  } catch (err) {
+    hideLoading();
+    addMessage('assistant', `Connection error: ${err.message}\n\nIs llama-server running on port ${b.port}?`, brain);
+  }
+
+  loading = false;
+  document.getElementById('send-btn').disabled = false;
+  input.focus();
+}
+</script>
+</body>
+</html>
