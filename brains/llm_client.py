@@ -144,7 +144,8 @@ class LLMResponse:
         text = self.content.strip()
         if not text:
             return ""
-        # Remove think tags
+        # Remove think tag blocks and stray tags
+        text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
         text = re.sub(r'</?think>', '', text).strip()
         # Remove markdown
         for char in ["*", "#", "`", "~"]:
@@ -156,12 +157,10 @@ class LLMResponse:
             s = line.strip()
             if not s:
                 continue
-            # Skip lines that look like reasoning leaks
-            if re.match(r'^\d+\.\s+\w', s):    continue  # "3. Refining..."
-            if re.match(r'^(Wait|Okay|Correction|Refining|Checking|Draft|Note|Step|Plan|Recall|Identify)', s, re.I): continue
+            if re.match(r'^\d+\.\s+\w', s): continue
+            if re.match(r'^(Correction|Refining|Checking|Draft|Note|Step|Plan|Recall|Identify)', s, re.I): continue
             if re.match(r'^(Self-Correction|Final Plan|Revised Draft|Thinking Process|Output|Language:|Content:|Constraint)', s, re.I): continue
-            if re.match(r'^(Let me check|Let\'s |Looking at|Is there|Maybe |I (need|should|will))', s, re.I): continue
-            if re.match(r'^(Or shorter|Proceeding|Response Plan)', s, re.I): continue
+            if re.match(r'^(Looking at|Or shorter|Proceeding|Response Plan|Analysis|Reasoning)', s, re.I): continue
             clean.append(line)
         text = '\n'.join(clean).strip()
         # Remove leading colon artifacts
@@ -217,7 +216,7 @@ class LLMClient:
                  timeout: int = 120):
         self.base_url = base_url.rstrip("/")
         self.name = name
-        self.thinking = thinking  # Both brains think — small models need it
+        self.thinking = thinking
         self.default_max_tokens = default_max_tokens
         self.timeout = timeout
 
@@ -351,8 +350,7 @@ class LLMClient:
         if person_name:
             system += f" The person's name is {person_name}."
 
-        return self.chat(user_message, system=system, profile="filler", max_tokens=1000)
-        # Budget: ~500 tokens thinking + ~500 for the filler sentence
+        return self.chat(user_message, system=system, profile="filler", max_tokens=100)
 
     def respond_social(self, user_message: str,
                        person_name: Optional[str] = None,
@@ -367,8 +365,7 @@ class LLMClient:
         if person_name:
             prompt = f"(Person: {person_name}) {user_message}"
 
-        return self.chat(prompt, system=system, profile="social", max_tokens=1500)
-        # Budget: ~700 tokens thinking + ~800 for response
+        return self.chat(prompt, system=system, profile="social", max_tokens=200)
 
     def deep_query(self, user_message: str,
                    system: str,

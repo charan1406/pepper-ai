@@ -33,7 +33,7 @@ class PepperMain:
         # Clients
         self.pepper = PepperClient(config.BRIDGE_URL)
         self.deep = LLMClient(config.DEEP_BRAIN_URL, name="deep", thinking=True)
-        self.fast = LLMClient(config.FAST_BRAIN_URL, name="fast", thinking=True)
+        self.fast = LLMClient(config.FAST_BRAIN_URL, name="fast", thinking=False)
 
         # Supervisor (circuit breaker)
         self.supervisor = Supervisor(self.deep, self.fast)

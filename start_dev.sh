@@ -1,7 +1,6 @@
 #!/bin/bash
 # Dev mode: both brains sharing 4GB VRAM
-# Both think — small models NEED chain-of-thought for quality
-# 4B: reasoning_budget=1024 | 0.8B: reasoning_budget=512
+# 4B: thinking ON (reasoning_budget=1024) | 0.8B: thinking OFF (too small, causes loops)
 
 LLAMA_BIN="$HOME/llama.cpp/build/bin/llama-server"
 DEEP_MODEL="$HOME/models/Qwen3.5-4B.Q4_K_M.gguf"
@@ -26,7 +25,7 @@ start_deep() {
 }
 
 start_fast() {
-    echo "  Starting Fast Brain (0.8B, think=ON, budget=512) on :8091..."
+    echo "  Starting Fast Brain (0.8B, think=OFF) on :8091..."
     "$LLAMA_BIN" \
       -m "$FAST_MODEL" \
       --host 0.0.0.0 --port 8091 \
@@ -34,8 +33,7 @@ start_fast() {
       -fa on -ctk q4_0 -ctv q4_0 \
       -fit off \
       --jinja \
-      --chat-template-kwargs '{"enable_thinking":true}' \
-      --reasoning-budget 512 \
+      --chat-template-kwargs '{"enable_thinking":false}' \
       --threads 8 --threads-batch 16
 }
 
@@ -45,8 +43,7 @@ case "$MODE" in
     both)
         echo "============================================"
         echo "  PEPPER AI — Dev Mode (4GB shared VRAM)"
-        echo "  Both brains think (small models need it)"
-        echo "  4B budget=1024 | 0.8B budget=512"
+        echo "  4B: think=ON budget=1024 | 0.8B: think=OFF"
         echo "============================================"
         start_deep &
         for i in $(seq 1 60); do
