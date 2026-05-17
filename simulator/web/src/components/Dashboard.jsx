@@ -15,45 +15,44 @@ const styles = {
   container: {
     width: '380px',
     height: '100vh',
-    background: '#0d0d14',
-    borderLeft: '1px solid #1a1a2e',
+    background: '#2c2c2e',
+    borderLeft: '1px solid #3a3a3c',
     display: 'flex',
     flexDirection: 'column',
     fontFamily: "'JetBrains Mono', monospace",
     fontSize: '11px',
-    color: '#a0a0b8',
+    color: '#999',
     overflow: 'hidden',
   },
   header: {
     padding: '16px 20px',
-    borderBottom: '1px solid #1a1a2e',
+    borderBottom: '1px solid #3a3a3c',
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
   },
   title: {
-    fontFamily: "'Space Grotesk', sans-serif",
+    fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif",
     fontSize: '16px',
     fontWeight: 700,
-    color: '#e0e0f0',
+    color: '#e5e5e5',
     letterSpacing: '-0.5px',
   },
   statusDot: (connected) => ({
     width: '8px',
     height: '8px',
     borderRadius: '50%',
-    background: connected ? '#44ff88' : '#ff4444',
-    boxShadow: connected ? '0 0 8px #44ff8866' : '0 0 8px #ff444466',
+    background: connected ? '#8aba8a' : '#ba8a8a',
   }),
   section: {
     padding: '12px 20px',
-    borderBottom: '1px solid #1a1a2e',
+    borderBottom: '1px solid #3a3a3c',
   },
   sectionTitle: {
-    fontFamily: "'Space Grotesk', sans-serif",
+    fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif",
     fontSize: '10px',
     fontWeight: 600,
-    color: '#6a6a8a',
+    color: '#666',
     textTransform: 'uppercase',
     letterSpacing: '1.5px',
     marginBottom: '8px',
@@ -64,21 +63,21 @@ const styles = {
     padding: '2px 0',
   },
   label: {
-    color: '#6a6a8a',
+    color: '#666',
   },
   value: {
-    color: '#c0c0e0',
+    color: '#e5e5e5',
   },
   battery: (level) => ({
-    color: level > 50 ? '#44ff88' : level > 20 ? '#ffaa44' : '#ff4444',
+    color: level > 50 ? '#8aba8a' : level > 20 ? '#d4a847' : '#ba8a8a',
     fontWeight: 600,
   }),
   speechBox: {
-    background: '#1a1a2e',
+    background: '#1c1c1e',
     borderRadius: '6px',
     padding: '8px 12px',
     marginTop: '4px',
-    color: '#88aaff',
+    color: '#e5e5e5',
     fontStyle: 'italic',
     minHeight: '24px',
     wordBreak: 'break-word',
@@ -90,22 +89,22 @@ const styles = {
   },
   logEntry: {
     padding: '4px 0',
-    borderBottom: '1px solid #0f0f18',
+    borderBottom: '1px solid #1c1c1e',
     display: 'flex',
     gap: '8px',
     fontSize: '10px',
   },
   logTime: {
-    color: '#4a4a6a',
+    color: '#666',
     minWidth: '55px',
   },
   logMethod: (method) => ({
-    color: method === 'POST' ? '#ff8844' : '#44aaff',
+    color: method === 'POST' ? '#d4a847' : '#8aba8a',
     fontWeight: 600,
     minWidth: '32px',
   }),
   logEndpoint: {
-    color: '#8888bb',
+    color: '#999',
     flex: 1,
   },
   posIndicator: {
@@ -116,9 +115,9 @@ const styles = {
   miniMap: {
     width: '100%',
     height: '80px',
-    background: '#0a0a12',
+    background: '#1c1c1e',
     borderRadius: '6px',
-    border: '1px solid #1a1a2e',
+    border: '1px solid #3a3a3c',
     position: 'relative',
     marginTop: '4px',
     overflow: 'hidden',
@@ -146,7 +145,7 @@ function MiniMap() {
             cx={obj.x * scaleX}
             cy={mapH - obj.y * scaleY}
             r={3}
-            fill="#2a2a4a"
+            fill="#3a3a3c"
           />
         ))}
 
@@ -155,8 +154,8 @@ function MiniMap() {
           cx={x * scaleX}
           cy={mapH - y * scaleY}
           r={5}
-          fill="#4488ff"
-          stroke="#88bbff"
+          fill="#8aba8a"
+          stroke="#a0cca0"
           strokeWidth={1}
         />
 
@@ -166,7 +165,7 @@ function MiniMap() {
           y1={mapH - y * scaleY}
           x2={x * scaleX + Math.cos(-theta + Math.PI/2) * 12}
           y2={mapH - y * scaleY - Math.sin(-theta + Math.PI/2) * 12}
-          stroke="#4488ff"
+          stroke="#8aba8a"
           strokeWidth={2}
         />
       </svg>
@@ -205,7 +204,7 @@ export default function Dashboard() {
       <div style={styles.header}>
         <div style={styles.statusDot(connected)} />
         <div style={styles.title}>Pepper Simulator</div>
-        <div style={{ marginLeft: 'auto', fontSize: '10px', color: '#4a4a6a' }}>
+        <div style={{ marginLeft: 'auto', fontSize: '10px', color: '#666' }}>
           {connected ? 'LIVE' : 'OFFLINE'}
         </div>
       </div>
@@ -227,7 +226,7 @@ export default function Dashboard() {
         </div>
         <div style={styles.row}>
           <span style={styles.label}>Moving</span>
-          <span style={{ color: isMoving ? '#44ff88' : '#6a6a8a' }}>
+          <span style={{ color: isMoving ? '#8aba8a' : '#666' }}>
             {isMoving ? 'YES' : 'no'}
           </span>
         </div>
@@ -244,7 +243,7 @@ export default function Dashboard() {
         {currentAnimation && (
           <div style={styles.row}>
             <span style={styles.label}>Animation</span>
-            <span style={{ color: '#ffaa44' }}>{currentAnimation.split('/').pop()}</span>
+            <span style={{ color: '#d4a847' }}>{currentAnimation.split('/').pop()}</span>
           </div>
         )}
       </div>
@@ -263,7 +262,7 @@ export default function Dashboard() {
       {/* Speech */}
       <div style={styles.section}>
         <div style={styles.sectionTitle}>
-          Speech {isSpeaking && <span style={{ color: '#44ff88' }}>● speaking ({speechLanguage})</span>}
+          Speech {isSpeaking && <span style={{ color: '#8aba8a' }}>● speaking ({speechLanguage})</span>}
         </div>
         <div style={styles.speechBox}>
           {currentSpeech || '(silent)'}
@@ -294,7 +293,7 @@ export default function Dashboard() {
           </div>
         ))}
         {apiLog.length === 0 && (
-          <div style={{ color: '#3a3a5a', fontStyle: 'italic' }}>
+          <div style={{ color: '#3a3a3c', fontStyle: 'italic' }}>
             Waiting for API calls...
           </div>
         )}
