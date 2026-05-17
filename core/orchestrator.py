@@ -117,9 +117,22 @@ class Orchestrator:
     def _fast_respond(self, text: str) -> LLMResponse:
         self.pepper.eyes_thinking()
         person_name = self._get_person_name()
-        return self.fast.respond_social(
-            text, person_name=person_name,
-            language=self._detect_language()
+        language = self._detect_language()
+
+        parts = ["[MODE: RESPOND]"]
+        if person_name:
+            parts.append(f"[PERSON] {person_name}")
+        parts.append(f"[LANGUAGE] {language}")
+        if self.history:
+            parts.append(f"[LAST RESPONSE] {self.history[-1].content}")
+        parts.append(f"[USER MESSAGE] {text}")
+
+        system = self._fast_system or "You are Pepper, a friendly robot. Respond in 1-2 sentences."
+        return self.fast.chat(
+            "\n".join(parts),
+            system=system,
+            profile="social",
+            max_tokens=512,
         )
 
     def _deep_respond(self, text: str) -> LLMResponse:
