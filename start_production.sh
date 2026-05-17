@@ -3,7 +3,7 @@
 # 4B: all layers + mmproj + thinking | 0.8B: all layers + no thinking
 
 LLAMA_BIN="$HOME/llama.cpp/build/bin/llama-server"
-DEEP_MODEL="$HOME/models/Qwen3.5-4B-Q4_K_M.gguf"
+DEEP_MODEL="$HOME/models/Qwen3.5-4B.Q4_K_M.gguf"
 FAST_MODEL="$HOME/models/Qwen3.5-0.8B.Q4_K_M.gguf"
 MMPROJ="$HOME/models/mmproj-F16.gguf"
 

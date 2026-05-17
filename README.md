@@ -58,10 +58,15 @@ pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
 ### Download Models
 
 ```bash
-# Qwen3.5 (from HuggingFace)
 mkdir -p ~/models
-# Download Qwen3.5-4B-Q4_K_M.gguf and Qwen3.5-0.8B.Q4_K_M.gguf
-# from https://huggingface.co/ggml-org/
+
+# Deep brain (4B) — Opus-distilled Qwen3.5
+# From: Jackrong/Qwen3.5-4B-Claude-4.6-Opus-Reasoning-Distilled-v2-GGUF
+# Download Q4_K_M quant → save as ~/models/Qwen3.5-4B.Q4_K_M.gguf
+
+# Fast brain (0.8B) — Opus-distilled Qwen3.5
+# From: Jackrong/Qwen3.5-0.8B-Claude-4.6-Opus-Reasoning-Distilled-GGUF
+# Download Q4_K_M quant → save as ~/models/Qwen3.5-0.8B.Q4_K_M.gguf
 ```
 
 ### Run
@@ -125,7 +130,7 @@ pepper-ai/
 
 ## Tech Stack
 
-- **LLM**: Qwen3.5-4B + 0.8B via llama.cpp
+- **LLM**: Qwen3.5-4B + 0.8B (Opus-distilled) via llama.cpp
 - **STT**: faster-whisper (small) + Silero VAD
 - **Vision**: YOLO26n (ultralytics) + InsightFace (ArcFace)
 - **Memory**: Obsidian-compatible markdown with [[backlinks]]

@@ -71,7 +71,7 @@ Hello! How are you doing today?
 ### Deep Brain (4B) — Thinking ENABLED
 ```bash
 llama-server \
-  -m Qwen3.5-4B-Q4_K_M.gguf \
+  -m Qwen3.5-4B.Q4_K_M.gguf \
   --host 0.0.0.0 --port 8090 \
   -ngl 24 -np 1 -c 8192 \
   -fa on -ctk q4_0 -ctv q4_0 \
@@ -375,7 +375,7 @@ The server does the parsing when the flags are correct.
 ### 6GB GPU (Production with Pepper)
 ```bash
 # Deep Brain: all 32 layers + vision + thinking
-llama-server -m Qwen3.5-4B-Q4_K_M.gguf \
+llama-server -m Qwen3.5-4B.Q4_K_M.gguf \
   --mmproj mmproj-F16.gguf \
   -ngl 32 -c 8192 \
   --jinja --chat-template-kwargs '{"enable_thinking":true}' \
@@ -390,7 +390,7 @@ llama-server -m Qwen3.5-0.8B.Q4_K_M.gguf \
 ### 4GB GPU (Dev Laptop)
 ```bash
 # Deep Brain: 24 layers + thinking
-llama-server -m Qwen3.5-4B-Q4_K_M.gguf \
+llama-server -m Qwen3.5-4B.Q4_K_M.gguf \
   -ngl 24 -c 8192 \
   --jinja --chat-template-kwargs '{"enable_thinking":true}' \
   --reasoning-budget 1024

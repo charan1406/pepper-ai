@@ -3,7 +3,7 @@
 # Settings derived from proven Jarvis config, adapted for Pepper
 
 LLAMA_BIN="$HOME/llama.cpp/build/bin/llama-server"
-MODEL="$HOME/models/Qwen3.5-4B-Q4_K_M.gguf"
+MODEL="$HOME/models/Qwen3.5-4B.Q4_K_M.gguf"
 # MMPROJ="$HOME/models/mmproj-F16.gguf"  # Uncomment on 6GB GPU
 
 if [ ! -f "$MODEL" ]; then

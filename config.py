@@ -17,7 +17,7 @@ PEPPER_PORT = int(os.getenv("PEPPER_PORT", "9559"))
 
 # ─── MODEL PATHS ──────────────────────────────────────────────────
 MODEL_DIR = os.getenv("PEPPER_MODEL_DIR", str(Path.home() / "models"))
-DEEP_BRAIN_GGUF = f"{MODEL_DIR}/Qwen3.5-4B-Q4_K_M.gguf"
+DEEP_BRAIN_GGUF = f"{MODEL_DIR}/Qwen3.5-4B.Q4_K_M.gguf"
 FAST_BRAIN_GGUF = f"{MODEL_DIR}/Qwen3.5-0.8B.Q4_K_M.gguf"
 MMPROJ_GGUF = f"{MODEL_DIR}/mmproj-F16.gguf"
 
