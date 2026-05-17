@@ -21,20 +21,19 @@ function SpeechOverlay() {
       transform: 'translateX(-50%)',
       maxWidth: '500px',
       padding: '14px 24px',
-      background: 'rgba(10, 10, 20, 0.9)',
-      border: '1px solid rgba(68, 136, 255, 0.3)',
-      borderRadius: '12px',
-      fontFamily: "'Space Grotesk', sans-serif",
+      background: 'rgba(44, 44, 46, 0.95)',
+      border: '1px solid #3a3a3c',
+      borderRadius: '10px',
+      fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif",
       fontSize: '15px',
-      color: '#c0d0ff',
+      color: '#e5e5e5',
       textAlign: 'center',
-      backdropFilter: 'blur(10px)',
       zIndex: 100,
       pointerEvents: 'none',
     }}>
       <div style={{
         fontSize: '9px',
-        color: '#4488ff',
+        color: '#999',
         textTransform: 'uppercase',
         letterSpacing: '2px',
         marginBottom: '6px',
@@ -60,40 +59,37 @@ function StatusBar() {
       display: 'flex',
       gap: '12px',
       alignItems: 'center',
-      fontFamily: "'JetBrains Mono', monospace",
+      fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif",
       fontSize: '11px',
       zIndex: 100,
       pointerEvents: 'none',
     }}>
       <div style={{
         padding: '6px 12px',
-        background: 'rgba(10, 10, 20, 0.85)',
-        border: `1px solid ${connected ? '#1a3a2a' : '#3a1a1a'}`,
+        background: '#2c2c2e',
+        border: '1px solid #3a3a3c',
         borderRadius: '6px',
-        color: connected ? '#44ff88' : '#ff4444',
-        backdropFilter: 'blur(8px)',
+        color: connected ? '#8aba8a' : '#ba8a8a',
       }}>
         {connected ? '● CONNECTED' : '○ DISCONNECTED'}
       </div>
 
       <div style={{
         padding: '6px 12px',
-        background: 'rgba(10, 10, 20, 0.85)',
-        border: '1px solid #1a1a2e',
+        background: '#2c2c2e',
+        border: '1px solid #3a3a3c',
         borderRadius: '6px',
-        color: battery > 50 ? '#44ff88' : battery > 20 ? '#ffaa44' : '#ff4444',
-        backdropFilter: 'blur(8px)',
+        color: battery > 50 ? '#8aba8a' : battery > 20 ? '#d4a847' : '#ba8a8a',
       }}>
-        🔋 {battery}%
+        {battery}%
       </div>
 
       <div style={{
         padding: '6px 12px',
-        background: 'rgba(10, 10, 20, 0.85)',
-        border: '1px solid #1a1a2e',
+        background: '#2c2c2e',
+        border: '1px solid #3a3a3c',
         borderRadius: '6px',
-        color: '#a0a0c0',
-        backdropFilter: 'blur(8px)',
+        color: '#999',
       }}>
         {posture} {isMoving ? '→' : ''}
       </div>
@@ -105,8 +101,8 @@ function LoadingFallback() {
   return (
     <Html center>
       <div style={{
-        fontFamily: "'Space Grotesk', sans-serif",
-        color: '#4488ff',
+        fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif",
+        color: '#999',
         fontSize: '18px',
       }}>
         Loading Simulator...
@@ -120,14 +116,14 @@ export default function App() {
   usePepperWebSocket('ws://localhost:5003');
 
   return (
-    <div style={{ display: 'flex', width: '100vw', height: '100vh', background: '#0a0a0f' }}>
+    <div style={{ display: 'flex', width: '100vw', height: '100vh', background: '#1c1c1e' }}>
       {/* 3D Viewport */}
       <div style={{ flex: 1, position: 'relative' }}>
         <Canvas
           camera={{ position: [3, 4, 6], fov: 50, near: 0.1, far: 100 }}
           shadows
           gl={{ antialias: true }}
-          style={{ background: '#0a0a0f' }}
+          style={{ background: '#1c1c1e' }}
         >
           <Suspense fallback={<LoadingFallback />}>
             <Room />
@@ -144,7 +140,7 @@ export default function App() {
           />
 
           {/* Fog for atmosphere */}
-          <fog attach="fog" args={['#0a0a0f', 8, 20]} />
+          <fog attach="fog" args={['#1c1c1e', 8, 20]} />
         </Canvas>
 
         <StatusBar />
@@ -155,9 +151,9 @@ export default function App() {
           position: 'absolute',
           bottom: '16px',
           left: '16px',
-          fontFamily: "'Space Grotesk', sans-serif",
+          fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif",
           fontSize: '11px',
-          color: '#2a2a3a',
+          color: '#3a3a3c',
           zIndex: 100,
           pointerEvents: 'none',
         }}>
