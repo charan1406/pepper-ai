@@ -4,6 +4,7 @@ import { OrbitControls, Html, Environment } from '@react-three/drei';
 import PepperModel from './components/PepperModel';
 import Room from './components/Room';
 import Dashboard from './components/Dashboard';
+import ChatPopup from './components/ChatPopup';
 import { usePepperWebSocket, usePepperStore } from './hooks/usePepperState';
 
 function SpeechOverlay() {
@@ -145,6 +146,7 @@ export default function App() {
 
         <StatusBar />
         <SpeechOverlay />
+        <ChatPopup />
 
         {/* Title watermark */}
         <div style={{
