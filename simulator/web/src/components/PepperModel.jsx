@@ -13,7 +13,7 @@ import { usePepperStore } from '../hooks/usePepperState';
 const PEPPER_WHITE = '#f0f0f0';
 const PEPPER_LIGHT = '#e8e8e8';
 const PEPPER_DARK = '#d0d0d0';
-const PEPPER_TABLET = '#1a1a2e';
+const PEPPER_TABLET = '#1c1c1e';
 
 function EyeLED({ position, color }) {
   return (
@@ -144,8 +144,8 @@ function Torso({ isSpeaking }) {
   useFrame((state) => {
     if (glowRef.current) {
       const pulse = isSpeaking
-        ? 0.3 + Math.sin(state.clock.elapsedTime * 8) * 0.2
-        : 0.1 + Math.sin(state.clock.elapsedTime * 1.5) * 0.05;
+        ? 0.15 + Math.sin(state.clock.elapsedTime * 8) * 0.1
+        : 0.05 + Math.sin(state.clock.elapsedTime * 1.5) * 0.03;
       glowRef.current.material.emissiveIntensity = pulse;
     }
   });
@@ -163,8 +163,8 @@ function Torso({ isSpeaking }) {
         <boxGeometry args={[0.18, 0.12, 0.015]} />
         <meshStandardMaterial
           color={PEPPER_TABLET}
-          emissive="#4488ff"
-          emissiveIntensity={0.1}
+          emissive="#e5e5e0"
+          emissiveIntensity={0.05}
           roughness={0.1}
           metalness={0.5}
         />
@@ -241,7 +241,7 @@ function SpeechBubble({ text, position }) {
     <group position={[position[0], position[1] + 1.0, position[2]]}>
       <mesh>
         <planeGeometry args={[1.2, 0.3]} />
-        <meshBasicMaterial color="#1a1a2e" transparent opacity={0.85} side={THREE.DoubleSide} />
+        <meshBasicMaterial color="#2c2c2e" transparent opacity={0.85} side={THREE.DoubleSide} />
       </mesh>
     </group>
   );
