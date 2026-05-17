@@ -5,6 +5,7 @@ import PepperModel from './components/PepperModel';
 import Room from './components/Room';
 import Dashboard from './components/Dashboard';
 import ChatPopup from './components/ChatPopup';
+import SearchResultPopup from './components/SearchResultPopup';
 import { usePepperWebSocket, usePepperStore } from './hooks/usePepperState';
 
 function SpeechOverlay() {
@@ -118,6 +119,16 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', width: '100vw', height: '100vh', background: '#1c1c1e' }}>
+      <style>{`
+        @keyframes slideInRight {
+          from { transform: translateX(100px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes shrinkWidth {
+          from { width: 100%; }
+          to { width: 0%; }
+        }
+      `}</style>
       {/* 3D Viewport */}
       <div style={{ flex: 1, position: 'relative' }}>
         <Canvas
@@ -147,6 +158,7 @@ export default function App() {
         <StatusBar />
         <SpeechOverlay />
         <ChatPopup />
+        <SearchResultPopup />
 
         {/* Title watermark */}
         <div style={{
