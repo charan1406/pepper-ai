@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import { usePepperStore } from '../hooks/usePepperState';
 import * as THREE from 'three';
 
@@ -52,7 +53,29 @@ function Wall({ position, rotation, width, height = 2.5 }) {
   );
 }
 
-function Desk({ position, label }) {
+function SearchMonitor({ position }) {
+  const monitorRef = useRef();
+  const searchResults = usePepperStore((s) => s.searchResults);
+  const active = searchResults.length > 0;
+
+  useFrame(() => {
+    if (monitorRef.current) {
+      const target = active ? 0.4 : 0.15;
+      const current = monitorRef.current.material.emissiveIntensity;
+      monitorRef.current.material.emissiveIntensity += (target - current) * 0.05;
+      monitorRef.current.material.emissive.set(active ? '#e5e5e0' : '#333333');
+    }
+  });
+
+  return (
+    <mesh ref={monitorRef} position={position}>
+      <boxGeometry args={[0.4, 0.25, 0.02]} />
+      <meshStandardMaterial color="#111" emissive="#333333" emissiveIntensity={0.15} />
+    </mesh>
+  );
+}
+
+function Desk({ position, label, monitorOverride }) {
   return (
     <group position={position}>
       {/* Table top */}
@@ -67,11 +90,13 @@ function Desk({ position, label }) {
           <meshStandardMaterial color="#555" />
         </mesh>
       ))}
-      {/* Monitor */}
-      <mesh position={[0, 0.72, -0.15]}>
-        <boxGeometry args={[0.4, 0.25, 0.02]} />
-        <meshStandardMaterial color="#111" emissive="#333333" emissiveIntensity={0.15} />
-      </mesh>
+      {/* Monitor — use override if provided */}
+      {monitorOverride || (
+        <mesh position={[0, 0.72, -0.15]}>
+          <boxGeometry args={[0.4, 0.25, 0.02]} />
+          <meshStandardMaterial color="#111" emissive="#333333" emissiveIntensity={0.15} />
+        </mesh>
+      )}
       {/* Chair */}
       <mesh position={[0, 0.3, 0.4]}>
         <boxGeometry args={[0.3, 0.03, 0.3]} />
@@ -215,7 +240,7 @@ export default function Room() {
       <CoffeeMachine position={[0.5 - 4, 0, 5.0 - 3]} />
       <Whiteboard position={[4.0 - 4, 0, 5.5 - 3]} />
       <MeetingTable position={[3.0 - 4, 0, 3.0 - 3]} />
-      <Desk position={[6.5 - 4, 0, 1.5 - 3]} label="John" />
+      <Desk position={[6.5 - 4, 0, 1.5 - 3]} label="John" monitorOverride={<SearchMonitor position={[0, 0.72, -0.15]} />} />
       <Desk position={[1.0 - 4, 0, 3.0 - 3]} label="Priya" />
       <Desk position={[6.5 - 4, 0, 4.0 - 3]} label="Desk 3" />
       <FanucArm position={[7.0 - 4, 0, 0.5 - 3]} />
