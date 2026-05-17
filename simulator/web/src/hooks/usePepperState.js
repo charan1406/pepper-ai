@@ -49,33 +49,71 @@ export const usePepperStore = create((set) => ({
   // Uptime
   uptime: 0,
 
+  // Chat
+  chatMessages: [],
+  chatLoading: false,
+
+  // Search results
+  searchResults: [],
+
+  // Derived robot state
+  robotState: 'idle',
+
   // Update from WebSocket message
-  updateFromWS: (data) => set({
-    connected: true,
-    state: data,
-    x: data.position?.x ?? 0.5,
-    y: data.position?.y ?? 0.5,
-    theta: data.position?.theta ?? 0,
-    isMoving: data.is_moving ?? false,
-    joints: data.joints ?? {},
-    battery: data.battery ?? 100,
-    posture: data.posture ?? 'StandInit',
-    isSpeaking: data.is_speaking ?? false,
-    currentSpeech: data.current_speech ?? '',
-    speechLanguage: data.speech_language ?? 'en',
-    eyeColor: data.eye_color ?? { r: 255, g: 255, b: 255 },
-    tabletVisible: data.tablet?.visible ?? false,
-    tabletUrl: data.tablet?.url ?? '',
-    autonomousLife: data.autonomous_life ?? true,
-    faceTracking: data.face_tracking ?? false,
-    currentAnimation: data.current_animation,
-    hasMap: data.has_map ?? false,
-    isExploring: data.is_exploring ?? false,
-    navTarget: data.nav_target,
-    roomObjects: data.room_objects ?? {},
-    apiLog: data.api_log ?? [],
-    uptime: data.uptime ?? 0,
+  updateFromWS: (data) => set((state) => {
+    let robotState = 'idle';
+    if (data.is_speaking) robotState = 'speaking';
+    else if (data.current_animation?.includes('Think')) robotState = 'thinking';
+
+    const newSearchResults = data.search_results?.length
+      ? [...state.searchResults, ...data.search_results.map((r) => ({ ...r, id: Date.now() + Math.random(), dismissAt: Date.now() + 8000 }))]
+        .slice(-3)
+      : state.searchResults;
+
+    return {
+      connected: true,
+      state: data,
+      x: data.position?.x ?? 0.5,
+      y: data.position?.y ?? 0.5,
+      theta: data.position?.theta ?? 0,
+      isMoving: data.is_moving ?? false,
+      joints: data.joints ?? {},
+      battery: data.battery ?? 100,
+      posture: data.posture ?? 'StandInit',
+      isSpeaking: data.is_speaking ?? false,
+      currentSpeech: data.current_speech ?? '',
+      speechLanguage: data.speech_language ?? 'en',
+      eyeColor: data.eye_color ?? { r: 255, g: 255, b: 255 },
+      tabletVisible: data.tablet?.visible ?? false,
+      tabletUrl: data.tablet?.url ?? '',
+      tabletImage: data.tablet?.image ?? '',
+      autonomousLife: data.autonomous_life ?? true,
+      faceTracking: data.face_tracking ?? false,
+      currentAnimation: data.current_animation,
+      hasMap: data.has_map ?? false,
+      isExploring: data.is_exploring ?? false,
+      navTarget: data.nav_target,
+      roomObjects: data.room_objects ?? {},
+      apiLog: data.api_log ?? [],
+      uptime: data.uptime ?? 0,
+      robotState,
+      searchResults: newSearchResults,
+    };
   }),
+
+  addChatMessage: (msg) => set((state) => ({
+    chatMessages: [...state.chatMessages, msg],
+  })),
+
+  setChatLoading: (loading) => set({ chatLoading: loading }),
+
+  addSearchResult: (result) => set((state) => ({
+    searchResults: [...state.searchResults.slice(-2), { ...result, id: Date.now(), dismissAt: Date.now() + 8000 }],
+  })),
+
+  dismissSearchResult: (id) => set((state) => ({
+    searchResults: state.searchResults.filter((r) => r.id !== id),
+  })),
 
   setDisconnected: () => set({ connected: false }),
 }));
