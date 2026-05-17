@@ -7,9 +7,9 @@ import * as THREE from 'three';
  * Objects match the simulated room layout from PepperState.
  */
 
-const FLOOR_COLOR = '#1a1a24';
-const WALL_COLOR = '#12121a';
-const GRID_COLOR = '#2a2a3a';
+const FLOOR_COLOR = '#2c2c2e';
+const WALL_COLOR = '#1c1c1e';
+const GRID_COLOR = '#3a3a3c';
 
 function GridFloor() {
   return (
@@ -22,7 +22,7 @@ function GridFloor() {
 
       {/* Grid overlay */}
       <gridHelper
-        args={[8, 16, GRID_COLOR, '#1e1e2a']}
+        args={[8, 16, GRID_COLOR, '#2c2c2e']}
         position={[0, -0.249, 0]}
       />
 
@@ -30,7 +30,7 @@ function GridFloor() {
       {[0, 1, 2, 3].map((i) => (
         <mesh key={`xm-${i}`} position={[i - 4 + 0.5, -0.248, -3]} rotation={[-Math.PI/2, 0, 0]}>
           <circleGeometry args={[0.03, 8]} />
-          <meshBasicMaterial color="#4a4a5a" />
+          <meshBasicMaterial color="#3a3a3c" />
         </mesh>
       ))}
     </group>
@@ -70,12 +70,12 @@ function Desk({ position, label }) {
       {/* Monitor */}
       <mesh position={[0, 0.72, -0.15]}>
         <boxGeometry args={[0.4, 0.25, 0.02]} />
-        <meshStandardMaterial color="#111" emissive="#223344" emissiveIntensity={0.2} />
+        <meshStandardMaterial color="#111" emissive="#333333" emissiveIntensity={0.15} />
       </mesh>
       {/* Chair */}
       <mesh position={[0, 0.3, 0.4]}>
         <boxGeometry args={[0.3, 0.03, 0.3]} />
-        <meshStandardMaterial color="#2a2a40" />
+        <meshStandardMaterial color="#2c2c2e" />
       </mesh>
     </group>
   );
@@ -128,7 +128,7 @@ function MeetingTable({ position }) {
       {[0, 1.57, 3.14, 4.71].map((angle, i) => (
         <mesh key={i} position={[Math.cos(angle) * 0.9, 0.25, Math.sin(angle) * 0.9]}>
           <boxGeometry args={[0.25, 0.03, 0.25]} />
-          <meshStandardMaterial color="#2a2a40" />
+          <meshStandardMaterial color="#2c2c2e" />
         </mesh>
       ))}
     </group>
@@ -221,18 +221,18 @@ export default function Room() {
       <FanucArm position={[7.0 - 4, 0, 0.5 - 3]} />
 
       {/* Ambient lighting */}
-      <ambientLight intensity={0.3} color="#8888aa" />
+      <ambientLight intensity={0.35} color="#cccccc" />
       <directionalLight position={[5, 8, 3]} intensity={0.7} color="#ffffff" castShadow />
-      <pointLight position={[0, 3, 0]} intensity={0.3} color="#6666aa" />
+      <pointLight position={[0, 3, 0]} intensity={0.2} color="#cccccc" />
 
       {/* Ceiling light strips */}
       <mesh position={[-2, 2.4, 0]}>
         <boxGeometry args={[0.1, 0.02, 4]} />
-        <meshStandardMaterial color="#fff" emissive="#ffffff" emissiveIntensity={0.3} />
+        <meshStandardMaterial color="#ddd" emissive="#ffffff" emissiveIntensity={0.2} />
       </mesh>
       <mesh position={[2, 2.4, 0]}>
         <boxGeometry args={[0.1, 0.02, 4]} />
-        <meshStandardMaterial color="#fff" emissive="#ffffff" emissiveIntensity={0.3} />
+        <meshStandardMaterial color="#ddd" emissive="#ffffff" emissiveIntensity={0.2} />
       </mesh>
     </group>
   );
