@@ -614,6 +614,8 @@ async def ws_handler(websocket):
         while True:
             state = pepper.to_dict()
             await websocket.send(json.dumps(state))
+            if state.get("search_results"):
+                pepper.clear_search_results()
             await asyncio.sleep(0.05)
     except websockets.exceptions.ConnectionClosed:
         pass

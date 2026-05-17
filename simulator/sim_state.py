@@ -186,6 +186,9 @@ class PepperState:
             self.api_log = []
             self.max_log_size = 100
 
+            # Search results (for frontend display)
+            self.search_results = []
+
             # Animation
             self.current_animation = None
 
@@ -384,6 +387,22 @@ class PepperState:
         with self._lock:
             self.tablet_visible = False
 
+    # ─── Search Results ──────────────────────────────────────────
+
+    def push_search_result(self, query, results):
+        with self._lock:
+            self.search_results.append({
+                "query": query,
+                "results": results,
+                "time": time.strftime("%H:%M:%S"),
+            })
+            if len(self.search_results) > 5:
+                self.search_results.pop(0)
+
+    def clear_search_results(self):
+        with self._lock:
+            self.search_results = []
+
     # ─── Queries ─────────────────────────────────────────────────
 
     def get_robot_position(self):
@@ -516,4 +535,5 @@ class PepperState:
                 "room_objects": self.ROOM_OBJECTS,
                 "api_log": self.api_log[-20:],
                 "uptime": round(time.time() - self.boot_time),
+                "search_results": self.search_results,
             }
