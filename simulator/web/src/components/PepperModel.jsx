@@ -1,7 +1,8 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { usePepperStore } from '../hooks/usePepperState';
+import TabletRenderer from './TabletRenderer';
 
 /**
  * Stylized low-poly Pepper robot model.
@@ -137,19 +138,7 @@ function Arm({ side, shoulderPitch, shoulderRoll, elbowYaw, elbowRoll }) {
   );
 }
 
-function Torso({ isSpeaking }) {
-  const glowRef = useRef();
-
-  // Subtle breathing animation on the tablet screen
-  useFrame((state) => {
-    if (glowRef.current) {
-      const pulse = isSpeaking
-        ? 0.15 + Math.sin(state.clock.elapsedTime * 8) * 0.1
-        : 0.05 + Math.sin(state.clock.elapsedTime * 1.5) * 0.03;
-      glowRef.current.material.emissiveIntensity = pulse;
-    }
-  });
-
+function Torso({ tabletTexture }) {
   return (
     <group position={[0, 0.15, 0]}>
       {/* Main torso */}
@@ -159,15 +148,19 @@ function Torso({ isSpeaking }) {
       </mesh>
 
       {/* Chest tablet screen */}
-      <mesh ref={glowRef} position={[0, 0.22, 0.12]}>
+      <mesh position={[0, 0.22, 0.12]}>
         <boxGeometry args={[0.18, 0.12, 0.015]} />
-        <meshStandardMaterial
-          color={PEPPER_TABLET}
-          emissive="#e5e5e0"
-          emissiveIntensity={0.05}
-          roughness={0.1}
-          metalness={0.5}
-        />
+        {tabletTexture ? (
+          <meshBasicMaterial map={tabletTexture} />
+        ) : (
+          <meshStandardMaterial
+            color={PEPPER_TABLET}
+            emissive="#e5e5e0"
+            emissiveIntensity={0.05}
+            roughness={0.1}
+            metalness={0.5}
+          />
+        )}
       </mesh>
 
       {/* Tablet bezel */}
@@ -258,6 +251,16 @@ export default function PepperModel() {
   const isSpeaking = usePepperStore((s) => s.isSpeaking);
   const currentSpeech = usePepperStore((s) => s.currentSpeech);
   const isMoving = usePepperStore((s) => s.isMoving);
+  const robotState = usePepperStore((s) => s.robotState);
+  const tabletVisible = usePepperStore((s) => s.tabletVisible);
+  const tabletUrl = usePepperStore((s) => s.tabletUrl);
+  const tabletImage = usePepperStore((s) => s.tabletImage);
+
+  const tabletRenderer = useMemo(() => new TabletRenderer(), []);
+
+  useEffect(() => {
+    return () => tabletRenderer.dispose();
+  }, [tabletRenderer]);
 
   useFrame(() => {
     if (groupRef.current) {
@@ -266,6 +269,7 @@ export default function PepperModel() {
       groupRef.current.position.z = y - 3;
       groupRef.current.rotation.y = -theta + Math.PI / 2;
     }
+    tabletRenderer.update(robotState, tabletVisible, tabletUrl, tabletImage);
   });
 
   return (
@@ -277,7 +281,7 @@ export default function PepperModel() {
       </mesh>
 
       <Base isMoving={isMoving} />
-      <Torso isSpeaking={isSpeaking} />
+      <Torso tabletTexture={tabletRenderer.texture} />
 
       <Arm
         side="left"
