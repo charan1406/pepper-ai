@@ -14,6 +14,7 @@ import base64
 import struct
 import threading
 import asyncio
+import hashlib
 import wave
 import io
 import os
@@ -388,6 +389,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
             "/navigate/goto":      self._post_nav_goto,
             "/navigate/save":      self._post_nav_save,
             "/navigate/load":      self._post_nav_load,
+            "/chat":               self._post_chat,
+            "/search_results":     self._post_search_results,
         }
 
         handler = routes.get(path)
@@ -567,6 +570,40 @@ class BridgeHandler(BaseHTTPRequestHandler):
     def _post_nav_load(self, body):
         pepper.has_map = True
         return {"success": True, "data": {}}
+
+    def _post_chat(self, body):
+        text = body.get("text", "")
+        if not text:
+            return {"success": False, "error": "No text provided"}
+        print(f"[CHAT] User: {text}")
+        mock_responses = [
+            "Hello! I'm running in simulator mode right now.",
+            "That's an interesting question! Let me think about it.",
+            "I'm Pepper, nice to chat with you!",
+            "In simulator mode, I can only give mock responses. Connect the orchestrator for real conversation!",
+        ]
+        idx = int(hashlib.md5(text.encode()).hexdigest(), 16) % len(mock_responses)
+        response_text = mock_responses[idx]
+        pepper.say(response_text, "en")
+        def finish():
+            time.sleep(max(1.0, len(response_text.split()) * 0.15))
+            pepper.finish_speaking()
+        threading.Thread(target=finish, daemon=True).start()
+        return {
+            "success": True,
+            "data": {
+                "response": response_text,
+                "routed_to": "simulator",
+                "tools_used": [],
+            }
+        }
+
+    def _post_search_results(self, body):
+        query = body.get("query", "")
+        results = body.get("results", [])
+        pepper.push_search_result(query, results)
+        print(f"[SEARCH] query='{query}' results={len(results)}")
+        return {"success": True, "data": {"query": query, "count": len(results)}}
 
 
 # ─── WebSocket State Broadcaster ────────────────────────────────
