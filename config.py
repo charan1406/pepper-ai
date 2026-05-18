@@ -17,15 +17,12 @@ PEPPER_PORT = int(os.getenv("PEPPER_PORT", "9559"))
 
 # ─── MODEL PATHS ──────────────────────────────────────────────────
 MODEL_DIR = os.getenv("PEPPER_MODEL_DIR", str(Path.home() / "models"))
-DEEP_BRAIN_GGUF = f"{MODEL_DIR}/Qwen3.5-4B.Q4_K_M.gguf"
-FAST_BRAIN_GGUF = f"{MODEL_DIR}/Qwen3.5-0.8B.Q4_K_M.gguf"
+BRAIN_GGUF = f"{MODEL_DIR}/Qwen3.5-4B.Q4_K_M.gguf"
 MMPROJ_GGUF = f"{MODEL_DIR}/mmproj-F16.gguf"
 
 # ─── LLM SERVERS ─────────────────────────────────────────────────
-DEEP_BRAIN_URL = "http://localhost:8090/v1"      # Qwen3.5-4B on GPU
-FAST_BRAIN_URL = "http://localhost:8091/v1"      # Qwen3.5-0.8B on CPU
-DEEP_BRAIN_MODEL = "qwen3.5-4b"
-FAST_BRAIN_MODEL = "qwen3.5-0.8b"
+BRAIN_URL = "http://localhost:8090/v1"
+BRAIN_MODEL = "qwen3.5-4b"
 
 # ─── VRAM BUDGET ──────────────────────────────────────────────────
 # 4GB laptop testing: text-only, no mmproj, 4K context
@@ -63,6 +60,9 @@ EDGE_TTS_ENABLED = True       # Fallback, needs internet
 EDGE_TTS_VOICE_TAMIL = "ta-IN-PallaviNeural"
 EDGE_TTS_VOICE_DEFAULT = "en-US-AriaNeural"
 
+# ─── FILLERS ─────────────────────────────────────────────────────
+FILLER_LANGUAGES = ["en", "de"]
+
 # ─── MEMORY / OBSIDIAN BRAIN ─────────────────────────────────────
 BRAIN_VAULT_PATH = "./pepper_brain"
 MAX_QUICK_CONTEXT_ITEMS = 10
@@ -89,7 +89,6 @@ TEMP_SOCIAL = {"temperature": 0.7, "top_p": 0.95}
 TEMP_CREATIVE = {"temperature": 0.9, "top_p": 0.95}
 
 # ─── ROUTER THRESHOLDS ───────────────────────────────────────────
-FAST_BRAIN_MAX_WORDS = 6
 DEEP_MOMENTUM_TURNS = 2
 ESCALATE_KEYWORD = "ESCALATE"
 

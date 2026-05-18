@@ -1,18 +1,15 @@
-"""Phase 8: Production Hardening — Circuit Breaker + Graceful Degradation.
+"""Production Hardening — Circuit Breaker + Graceful Degradation.
 
 Degradation ladder:
-  Level 0: Full capability (deep + fast + reflex)
-  Level 1: Deep brain offline → fast brain handles all
-  Level 2: Both brains offline → reflex + canned responses
-  Level 3: Bridge offline → log everything, wait for reconnect
+  Level 0: Full capability (deep + reflex)
+  Level 1: Brain offline → reflex + canned responses
+  Level 2: Bridge offline → log everything, wait for reconnect
 """
 
 import time
-import json
-from typing import Optional, Dict
-from dataclasses import dataclass, field
+from typing import Dict
+from dataclasses import dataclass
 from collections import defaultdict
-from pathlib import Path
 
 from brains.llm_client import LLMClient, LLMResponse
 
@@ -26,7 +23,7 @@ class CircuitState:
 
 
 class CircuitBreaker:
-    """Circuit breaker per brain — prevents cascading failures."""
+    """Circuit breaker — prevents cascading failures."""
 
     def __init__(self, failure_threshold: int = 3, reset_timeout: float = 30.0):
         self.threshold = failure_threshold
@@ -38,7 +35,7 @@ class CircuitBreaker:
         if not state.is_open:
             return True
         if time.time() >= state.half_open_at:
-            return True  # half-open probe
+            return True
         return False
 
     def record_success(self, brain_name: str):
@@ -71,58 +68,39 @@ CANNED_RESPONSES = [
 class Supervisor:
     """Manages brain health, degradation, and fallback responses."""
 
-    def __init__(self, deep: LLMClient, fast: LLMClient):
-        self.deep = deep
-        self.fast = fast
+    def __init__(self, brain: LLMClient):
+        self.brain = brain
         self.breaker = CircuitBreaker()
         self._canned_idx = 0
 
     @property
     def degradation_level(self) -> int:
-        deep_ok = self.breaker.can_call("deep")
-        fast_ok = self.breaker.can_call("fast")
-        if deep_ok and fast_ok:
+        if self.breaker.can_call("brain"):
             return 0
-        elif fast_ok:
-            return 1
-        elif deep_ok:
-            return 1
-        else:
-            return 2
+        return 1
 
-    def call_deep(self, *args, **kwargs) -> LLMResponse:
-        if not self.breaker.can_call("deep"):
-            return self._fallback("deep")
-        resp = self.deep.chat(*args, **kwargs)
+    def call(self, *args, **kwargs) -> LLMResponse:
+        if not self.breaker.can_call("brain"):
+            return self._fallback()
+        resp = self.brain.chat(*args, **kwargs)
         if resp.success:
-            self.breaker.record_success("deep")
+            self.breaker.record_success("brain")
         else:
-            self.breaker.record_failure("deep")
+            self.breaker.record_failure("brain")
         return resp
 
-    def call_fast(self, *args, **kwargs) -> LLMResponse:
-        if not self.breaker.can_call("fast"):
-            return self._fallback("fast")
-        resp = self.fast.chat(*args, **kwargs)
-        if resp.success:
-            self.breaker.record_success("fast")
-        else:
-            self.breaker.record_failure("fast")
-        return resp
-
-    def _fallback(self, brain_name: str) -> LLMResponse:
+    def _fallback(self) -> LLMResponse:
         text = CANNED_RESPONSES[self._canned_idx % len(CANNED_RESPONSES)]
         self._canned_idx += 1
         return LLMResponse(
             content=text,
             success=True,
-            error=f"circuit open for {brain_name}",
+            error="circuit open for brain",
         )
 
     def health_check(self) -> Dict:
         return {
-            "deep_alive": self.deep.is_alive(),
-            "fast_alive": self.fast.is_alive(),
+            "brain_alive": self.brain.is_alive(),
             "circuits": self.breaker.status(),
             "degradation_level": self.degradation_level,
         }
