@@ -1,13 +1,10 @@
 """
-LLM Client — Dual Brain Interface (v3)
+LLM Client — Brain Interface (v4)
 =========================================
 Based on official Qwen3.5 documentation + JARVIS audit findings.
 
 Critical: Qwen3.5 requires `chat_template_kwargs: {"enable_thinking": bool}`
 passed PER-REQUEST in the API body, not just as a server flag.
-
-Deep Brain (4B): enable_thinking=True → reasoning in `reasoning_content`
-Fast Brain (0.8B): enable_thinking=False → direct response, no thinking overhead
 """
 
 import json
@@ -68,13 +65,13 @@ TEMP_PROFILES = {
     },
 
     # ─── Aliases for the orchestrator ────────────────────────
-    "factual":  None,   # → think_general (deep brain)
-    "social":   None,   # → instruct_general (fast brain)
-    "filler":   None,   # → instruct_general (fast brain)
-    "vision":   None,   # → think_general (deep brain)
+    "factual":  None,   # → resolved based on thinking mode
+    "social":   None,
+    "filler":   None,
+    "vision":   None,
     "tool":     None,   # → structured
-    "creative": None,   # → instruct_general
-    "default":  None,   # → resolved based on brain type
+    "creative": None,
+    "default":  None,
 }
 
 def resolve_profile(profile: str, thinking_enabled: bool) -> Dict:
@@ -335,37 +332,6 @@ class LLMClient:
             tools=tools,
             **params
         )
-
-    def generate_filler(self, user_message: str,
-                        person_name: Optional[str] = None,
-                        language: str = "en") -> LLMResponse:
-        """Generate a quick filler (fast brain, thinking=OFF)."""
-        system = (
-            "You are Pepper, a friendly robot. Generate ONE short sentence to "
-            "acknowledge what the user said. Do NOT answer the question. "
-            "Just a brief filler like 'Let me check!' or 'Good question, one moment!' "
-            f"Respond in language: {language}. "
-            "Output ONLY the filler sentence."
-        )
-        if person_name:
-            system += f" The person's name is {person_name}."
-
-        return self.chat(user_message, system=system, profile="filler", max_tokens=100)
-
-    def respond_social(self, user_message: str,
-                       person_name: Optional[str] = None,
-                       language: str = "en") -> LLMResponse:
-        """Direct social response (fast brain, thinking=OFF)."""
-        system = (
-            "You are Pepper, a friendly robot. Respond in 1-2 sentences. "
-            "If you cannot answer confidently, respond with ONLY: ESCALATE\n"
-            f"Respond in language: {language}."
-        )
-        prompt = user_message
-        if person_name:
-            prompt = f"(Person: {person_name}) {user_message}"
-
-        return self.chat(prompt, system=system, profile="social", max_tokens=200)
 
     def deep_query(self, user_message: str,
                    system: str,

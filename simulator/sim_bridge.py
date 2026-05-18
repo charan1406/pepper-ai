@@ -20,6 +20,16 @@ import io
 import os
 import sys
 
+# Add parent dir to path so we can import brains/
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+try:
+    from brains.llm_client import LLMClient, Message
+    HAS_LLM = True
+except ImportError:
+    HAS_LLM = False
+    print("[WARN] Could not import LLMClient. Chat will use mock responses.")
+
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
@@ -61,6 +71,16 @@ pa = None
 SIM_WEB_PORT = int(os.environ.get("SIM_WEB_PORT", 5002))
 SIM_WS_PORT = int(os.environ.get("SIM_WS_PORT", 5003))
 SIM_BRIDGE_PORT = int(os.environ.get("SIM_BRIDGE_PORT", 5001))
+
+# ─── LLM Brain ────────────────────────────────────────────────────
+BRAIN_URL = os.environ.get("BRAIN_URL", "http://localhost:8090/v1")
+
+brain = None
+chat_history: list = []
+
+if HAS_LLM:
+    brain = LLMClient(base_url=BRAIN_URL, name="deep", thinking=True, default_max_tokens=2048, timeout=90)
+    print(f"[LLM] Brain: {BRAIN_URL}")
 
 
 # ─── Webcam Manager ───────────────────────────────────────────────
@@ -572,31 +592,57 @@ class BridgeHandler(BaseHTTPRequestHandler):
         return {"success": True, "data": {}}
 
     def _post_chat(self, body):
+        global chat_history
         text = body.get("text", "")
         if not text:
             return {"success": False, "error": "No text provided"}
         print(f"[CHAT] User: {text}")
-        mock_responses = [
-            "Hello! I'm running in simulator mode right now.",
-            "That's an interesting question! Let me think about it.",
-            "I'm Pepper, nice to chat with you!",
-            "In simulator mode, I can only give mock responses. Connect the orchestrator for real conversation!",
-        ]
-        idx = int(hashlib.md5(text.encode()).hexdigest(), 16) % len(mock_responses)
-        response_text = mock_responses[idx]
+
+        chat_history.append(Message(role="user", content=text))
+        if len(chat_history) > 20:
+            chat_history = chat_history[-20:]
+
+        response_text, routed_to = self._query_llm(text)
+
         pepper.say(response_text, "en")
         def finish():
             time.sleep(max(1.0, len(response_text.split()) * 0.15))
             pepper.finish_speaking()
         threading.Thread(target=finish, daemon=True).start()
+
+        chat_history.append(Message(role="assistant", content=response_text))
+
         return {
             "success": True,
             "data": {
                 "response": response_text,
-                "routed_to": "simulator",
+                "routed_to": routed_to,
                 "tools_used": [],
             }
         }
+
+    def _query_llm(self, text):
+        """Try brain → mock fallback."""
+        system = "You are Pepper, a friendly humanoid robot. Reply in one or two sentences."
+        history = chat_history[:-1] if chat_history else []
+
+        if brain:
+            resp = brain.chat(text, system=system, history=history, profile="social", max_tokens=1024)
+            if resp.success and resp.spoken_text:
+                print(f"[CHAT] Brain: {resp.spoken_text} ({resp.tok_per_sec:.0f} tok/s)")
+                return resp.spoken_text, "deep"
+            else:
+                print(f"[CHAT] Brain failed: success={resp.success} error={resp.error} content={repr(resp.content)}")
+
+        print("[CHAT] Brain unavailable, using mock response")
+        mock_responses = [
+            "Hello! I'm running in simulator mode right now.",
+            "That's an interesting question! Let me think about it.",
+            "I'm Pepper, nice to chat with you!",
+            "No LLM brain is reachable. Start it with ./start_dev.sh",
+        ]
+        idx = int(hashlib.md5(text.encode()).hexdigest(), 16) % len(mock_responses)
+        return mock_responses[idx], "mock"
 
     def _post_search_results(self, body):
         query = body.get("query", "")
