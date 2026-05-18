@@ -22,6 +22,7 @@ from perception.vision import VisionPipeline
 from perception.scene import SceneManager
 from memory.vault import Vault
 from memory.person import PersonMemory
+from tts.filler import FillerPlayer
 
 
 class PepperMain:
@@ -32,11 +33,13 @@ class PepperMain:
 
         # Clients
         self.pepper = PepperClient(config.BRIDGE_URL)
-        self.deep = LLMClient(config.DEEP_BRAIN_URL, name="deep", thinking=True)
-        self.fast = LLMClient(config.FAST_BRAIN_URL, name="fast", thinking=False)
+        self.brain = LLMClient(config.BRAIN_URL, name="deep", thinking=True)
 
         # Supervisor (circuit breaker)
-        self.supervisor = Supervisor(self.deep, self.fast)
+        self.supervisor = Supervisor(self.brain)
+
+        # Filler audio
+        self.filler = FillerPlayer(self.pepper, config.FILLER_LANGUAGES)
 
         # Perception
         self.stt = SpeechToText()
@@ -59,8 +62,8 @@ class PepperMain:
         self._stop = threading.Event()
         self._autonomous = True
 
-        # System prompts
-        self._deep_system = self.vault.read("system/deep_brain.md") or \
+        # System prompt
+        self._system = self.vault.read("system/deep_brain.md") or \
             "You are Pepper, a friendly robot. Keep responses to 2-3 sentences."
 
         print("[MAIN] Initialization complete.")
@@ -72,7 +75,6 @@ class PepperMain:
         self.pepper.eyes_white()
         self.pepper.speak("Hello! I am online and ready.")
 
-        # Start heartbeat thread
         heartbeat_thread = threading.Thread(target=self._heartbeat_loop, daemon=True)
         heartbeat_thread.start()
 
@@ -80,11 +82,9 @@ class PepperMain:
 
         while not self._stop.is_set():
             try:
-                # Tick behavior tree (handles idle, exploration, safety)
                 if self._autonomous and not self.bb.person_detected:
                     self.tree.tick()
 
-                # Listen for speech
                 self.pepper.eyes_listening()
                 wav = self.pepper.record_audio(seconds=4)
                 if wav is None:
@@ -96,7 +96,6 @@ class PepperMain:
                     self.bb.person_detected = False
                     continue
 
-                # Process speech
                 self.bb.person_detected = True
                 self.bb.idle_since = time.time()
                 person_id = self._identify_speaker()
@@ -122,28 +121,17 @@ class PepperMain:
             self.health.log_interaction(text, decision.reflex_action.spoken, "reflex", person_id)
             return
 
-        # Build context
-        person_memory = None
-        if person_id and self.person_mem.exists(person_id):
-            person_memory = self.person_mem.get_quick_context(person_id)
-
-        scene_text = self.scene.scene_text()
-
-        # Call appropriate brain via supervisor
+        # Play filler while brain thinks
         self.pepper.eyes_thinking()
-        if decision.route == Route.FAST:
-            resp = self.supervisor.call_fast(
-                text, system=self._deep_system, profile="social"
-            )
-            if resp.escalated:
-                self.router.escalate()
-                resp = self.supervisor.call_deep(
-                    text, system=self._deep_system, profile="social"
-                )
-        else:
-            resp = self.supervisor.call_deep(
-                text, system=self._deep_system, profile="social"
-            )
+        filler_thread = threading.Thread(
+            target=self.filler.play, args=(self._detect_language(person_id),), daemon=True
+        )
+        filler_thread.start()
+
+        # Call brain via supervisor
+        resp = self.supervisor.call(
+            text, system=self._system, profile="social"
+        )
 
         spoken = resp.spoken_text if resp.success and not resp.is_empty else \
             "Sorry, I had a problem thinking."
@@ -157,7 +145,7 @@ class PepperMain:
         self.health.log_interaction(text, spoken, decision.route.value, person_id)
         if resp.success:
             self.health.log_llm_call(
-                decision.route.value, resp.completion_tokens,
+                "deep", resp.completion_tokens,
                 resp.wall_time, resp.tok_per_sec, True
             )
 
@@ -176,6 +164,16 @@ class PepperMain:
             if face.name != "unknown":
                 return face.name
         return None
+
+    def _detect_language(self, person_id: str = None) -> str:
+        if person_id:
+            content = self.person_mem.get(person_id)
+            if content:
+                import re
+                match = re.search(r'^language:\s*(.+)$', content, re.MULTILINE)
+                if match:
+                    return match.group(1).strip()
+        return "en"
 
     def _heartbeat_loop(self):
         while not self._stop.is_set():
