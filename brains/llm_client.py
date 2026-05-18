@@ -135,12 +135,32 @@ class LLMResponse:
     def has_tool_calls(self) -> bool:
         return len(self.tool_calls) > 0
 
+    def _extract_from_thinking(self) -> str:
+        """When content is empty, try to extract the final answer from thinking."""
+        if not self.thinking:
+            return ""
+        # The final answer is usually the last non-empty paragraph
+        paragraphs = [p.strip() for p in self.thinking.split('\n\n') if p.strip()]
+        if not paragraphs:
+            return ""
+        # Walk backwards to find something that looks like a response (not reasoning)
+        for para in reversed(paragraphs):
+            lines = para.strip().split('\n')
+            last = lines[-1].strip()
+            if re.match(r'^(Thinking|Step|Note|Correction|Draft|Plan|Analysis)', last, re.I):
+                continue
+            if re.match(r'^\d+\.\s+\*\*', last):
+                continue
+            # Found something that looks like actual output
+            return last
+        return ""
+
     @property
     def spoken_text(self) -> str:
         """Clean text for Pepper's TTS. Max 3 sentences."""
         text = self.content.strip()
         if not text:
-            return ""
+            text = self._extract_from_thinking()
         # Remove think tag blocks and stray tags
         text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
         text = re.sub(r'</?think>', '', text).strip()

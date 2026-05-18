@@ -79,7 +79,7 @@ brain = None
 chat_history: list = []
 
 if HAS_LLM:
-    brain = LLMClient(base_url=BRAIN_URL, name="deep", thinking=True, default_max_tokens=2048, timeout=90)
+    brain = LLMClient(base_url=BRAIN_URL, name="deep", thinking=True, default_max_tokens=2048, timeout=180)
     print(f"[LLM] Brain: {BRAIN_URL}")
 
 
