@@ -5,29 +5,29 @@ A production-grade system connecting a **Pepper 1.8 robot** (NAOqi 2.5) to local
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────────┐
-│                    Orchestrator                        │
-│  ┌─────────┐   ┌─────────┐   ┌──────────────────┐   │
-│  │  Reflex │   │  Fast   │   │   Deep Brain     │   │
-│  │ ~100ms  │   │  0.8B   │   │   4B (Qwen3.5)   │   │
-│  │ keywords│   │  social │   │   factual/tools   │   │
-│  └─────────┘   └─────────┘   └──────────────────┘   │
+┌────────────────────────────────────────────────────── ┐
+│                    Orchestrator                       │
+│  ┌─────────┐   ┌─────────┐   ┌──────────────────┐     │
+│  │  Reflex │   │  Fast   │   │   Deep Brain     │     │
+│  │ ~100ms  │   │  0.8B   │   │   4B (Qwen3.5)   │     │
+│  │ keywords│   │  social │   │   factual/tools  │     │
+│  └─────────┘   └─────────┘   └──────────────────┘     │
 │         ▲            ▲               ▲                │
 │         └────────────┴───────────────┘                │
 │                      Router                           │
-├──────────────────────────────────────────────────────┤
+├────────────────────────────────────────────────────── ┤
 │  Perception          │  Memory         │  Actions     │
 │  • Whisper STT       │  • Obsidian     │  • Speech    │
 │  • YOLO26n           │  • Person files │  • Movement  │
 │  • InsightFace       │  • Backlinks    │  • Gestures  │
 │  • Scene Manager     │  • Vault R/W    │  • Navigation│
-├──────────────────────────────────────────────────────┤
+├────────────────────────────────────────────────────── ┤
 │  Production                                           │
 │  • Behavior Tree (py_trees) — autonomous exploration  │
 │  • Circuit Breaker — graceful degradation             │
 │  • Watchdog — auto-restart on hang                    │
 │  • Structured JSON logging                            │
-└──────────────────────────────────────────────────────┘
+└────────────────────────────────────────────────────── ┘
 ```
 
 ---
