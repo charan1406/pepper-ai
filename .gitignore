@@ -21,7 +21,7 @@ env/
 # Claude Code
 .claude/
 CLAUDE.md
-.superpowers
+.superpowers/
 
 # Logs and temp
 logs/
