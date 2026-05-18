@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 
 /**
  * Zustand store for Pepper's state.
@@ -117,6 +117,33 @@ export const usePepperStore = create((set) => ({
 
   setDisconnected: () => set({ connected: false }),
 }));
+
+
+/**
+ * Hook for browser-side TTS — speaks Pepper's speech aloud.
+ */
+export function useBrowserTTS() {
+  const currentSpeech = usePepperStore((s) => s.currentSpeech);
+  const speechLanguage = usePepperStore((s) => s.speechLanguage);
+  const lastSpoken = useRef('');
+
+  useEffect(() => {
+    if (!currentSpeech || currentSpeech === lastSpoken.current) return;
+    if (!window.speechSynthesis) {
+      console.warn('[TTS] speechSynthesis not available');
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(currentSpeech);
+    utterance.lang = speechLanguage === 'de' ? 'de-DE' : 'en-US';
+    utterance.rate = 1.0;
+    utterance.pitch = 1.1;
+    console.log('[TTS] Speaking:', currentSpeech);
+    window.speechSynthesis.speak(utterance);
+    lastSpoken.current = currentSpeech;
+  }, [currentSpeech, speechLanguage]);
+}
 
 
 /**

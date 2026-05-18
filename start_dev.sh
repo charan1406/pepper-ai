@@ -7,13 +7,13 @@ MODEL="$HOME/models/Qwen3.5-4B.Q4_K_M.gguf"
 
 echo "============================================"
 echo "  PEPPER AI — Dev Mode (4GB VRAM)"
-echo "  4B: thinking=ON, budget=1024"
+echo "  4B: thinking=ON, budget=1024, ngl=99"
 echo "============================================"
 
 "$LLAMA_BIN" \
   -m "$MODEL" \
   --host 0.0.0.0 --port 8090 \
-  -ngl 24 -np 1 -c 8192 \
+  -ngl 99 -np 1 -c 8192 \
   -fa on -ctk q4_0 -ctv q4_0 \
   --swa-full --no-mmap -fit off \
   --jinja \

@@ -1,0 +1,122 @@
+<h2>Visual Direction — What style fits the simulator?</h2>
+<p class="subtitle">Moving away from the "AI dark theme" look. Pick a direction.</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 16px;">
+      <!-- Clean engineering style -->
+      <div style="display: flex; height: 200px; gap: 4px; font-family: -apple-system, 'Segoe UI', sans-serif; font-size: 10px;">
+        <!-- 3D viewport -->
+        <div style="flex: 1; background: #f5f5f0; border-radius: 4px; position: relative; border: 1px solid #ddd;">
+          <div style="position: absolute; top: 6px; left: 8px; font-size: 9px; color: #888; font-weight: 500;">VIEWPORT</div>
+          <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: #aaa; font-size: 11px;">3D Scene (light ground plane)</div>
+          <!-- Chat popup -->
+          <div style="position: absolute; bottom: 8px; right: 8px; width: 200px; background: #fff; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); overflow: hidden;">
+            <div style="padding: 6px 10px; background: #fafafa; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 10px; font-weight: 600; color: #333;">Chat</span>
+              <span style="font-size: 9px; color: #999; cursor: pointer;">— ✕</span>
+            </div>
+            <div style="padding: 6px 8px; font-size: 8px;">
+              <div style="background: #f0f0eb; padding: 3px 6px; border-radius: 6px; margin-bottom: 3px; color: #555; display: inline-block;">What's the weather?</div>
+              <div style="background: #e8f0e8; padding: 3px 6px; border-radius: 6px; color: #2a5a2a; display: inline-block;">It's 22°C in Berlin!</div>
+            </div>
+            <div style="padding: 4px 8px; border-top: 1px solid #eee;">
+              <div style="background: #f5f5f0; border: 1px solid #e0e0d8; border-radius: 6px; padding: 3px 8px; font-size: 8px; color: #999;">Type a message...</div>
+            </div>
+          </div>
+        </div>
+        <!-- Dashboard -->
+        <div style="width: 100px; background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 8px; font-size: 7px; color: #666;">
+          <div style="font-weight: 600; color: #333; margin-bottom: 4px; font-size: 8px;">Status</div>
+          <div>Battery: <span style="color: #4a8a4a;">92%</span></div>
+          <div>Posture: Stand</div>
+          <div style="margin-top: 8px; font-weight: 600; color: #333; font-size: 8px;">Position</div>
+          <div>x: 2.5m</div>
+          <div>y: 3.1m</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. Clean light — engineering tool</h3>
+      <p>Light background, minimal borders, no glow effects. Feels like a proper robotics lab tool — Figma/CAD aesthetic. White panels, subtle shadows, warm neutral tones. The 3D scene can stay darker (it's a 3D viewport) but all UI is light.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 16px;">
+      <!-- Warm dark with no glow -->
+      <div style="display: flex; height: 200px; gap: 4px; font-family: 'Inter', -apple-system, sans-serif; font-size: 10px;">
+        <div style="flex: 1; background: #1c1c1e; border-radius: 4px; position: relative;">
+          <div style="position: absolute; top: 6px; left: 8px; font-size: 9px; color: #666; font-weight: 500;">VIEWPORT</div>
+          <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: #555; font-size: 11px;">3D Scene</div>
+          <!-- Chat popup - warm dark -->
+          <div style="position: absolute; bottom: 8px; right: 8px; width: 200px; background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 10px; overflow: hidden;">
+            <div style="padding: 6px 10px; border-bottom: 1px solid #3a3a3c; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 10px; font-weight: 600; color: #e5e5e5;">Chat</span>
+              <span style="font-size: 9px; color: #666;">— ✕</span>
+            </div>
+            <div style="padding: 6px 8px; font-size: 8px;">
+              <div style="background: #3a3a3c; padding: 3px 6px; border-radius: 6px; margin-bottom: 3px; color: #ccc; display: inline-block;">What's the weather?</div>
+              <div style="background: #2a3a2a; padding: 3px 6px; border-radius: 6px; color: #8aba8a; display: inline-block;">It's 22°C in Berlin!</div>
+            </div>
+            <div style="padding: 4px 8px; border-top: 1px solid #3a3a3c;">
+              <div style="background: #1c1c1e; border: 1px solid #3a3a3c; border-radius: 6px; padding: 3px 8px; font-size: 8px; color: #666;">Type a message...</div>
+            </div>
+          </div>
+        </div>
+        <!-- Dashboard - warm dark -->
+        <div style="width: 100px; background: #2c2c2e; border-left: 1px solid #3a3a3c; border-radius: 4px; padding: 8px; font-size: 7px; color: #999;">
+          <div style="font-weight: 600; color: #e5e5e5; margin-bottom: 4px; font-size: 8px;">Status</div>
+          <div>Battery: <span style="color: #8aba8a;">92%</span></div>
+          <div>Posture: Stand</div>
+          <div style="margin-top: 8px; font-weight: 600; color: #e5e5e5; font-size: 8px;">Position</div>
+          <div>x: 2.5m</div>
+          <div>y: 3.1m</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. Warm dark — macOS/iOS aesthetic</h3>
+      <p>Dark but warm, like macOS dark mode. No blue/purple hue, no glows. Neutral grays (#2c2c2e, #3a3a3c), green accents for positive states, white text. Subtle borders instead of shadows. Feels native, not "AI-generated".</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 16px;">
+      <!-- Muted dark with accent color -->
+      <div style="display: flex; height: 200px; gap: 4px; font-family: 'Inter', -apple-system, sans-serif; font-size: 10px;">
+        <div style="flex: 1; background: #18181b; border-radius: 4px; position: relative;">
+          <div style="position: absolute; top: 6px; left: 8px; font-size: 9px; color: #52525b; font-weight: 500;">VIEWPORT</div>
+          <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: #52525b; font-size: 11px;">3D Scene</div>
+          <!-- Chat popup - zinc palette -->
+          <div style="position: absolute; bottom: 8px; right: 8px; width: 200px; background: #27272a; border: 1px solid #3f3f46; border-radius: 8px; overflow: hidden;">
+            <div style="padding: 6px 10px; border-bottom: 1px solid #3f3f46; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 10px; font-weight: 600; color: #fafafa;">Chat</span>
+              <span style="font-size: 9px; color: #71717a;">— ✕</span>
+            </div>
+            <div style="padding: 6px 8px; font-size: 8px;">
+              <div style="background: #3f3f46; padding: 3px 6px; border-radius: 6px; margin-bottom: 3px; color: #d4d4d8; display: inline-block;">What's the weather?</div>
+              <div style="background: #1c3829; padding: 3px 6px; border-radius: 6px; color: #6ee7a0; display: inline-block;">It's 22°C in Berlin!</div>
+            </div>
+            <div style="padding: 4px 8px; border-top: 1px solid #3f3f46;">
+              <div style="background: #18181b; border: 1px solid #3f3f46; border-radius: 6px; padding: 3px 8px; font-size: 8px; color: #71717a;">Type a message...</div>
+            </div>
+          </div>
+        </div>
+        <!-- Dashboard - zinc -->
+        <div style="width: 100px; background: #27272a; border-left: 1px solid #3f3f46; border-radius: 4px; padding: 8px; font-size: 7px; color: #a1a1aa;">
+          <div style="font-weight: 600; color: #fafafa; margin-bottom: 4px; font-size: 8px;">Status</div>
+          <div>Battery: <span style="color: #6ee7a0;">92%</span></div>
+          <div>Posture: Stand</div>
+          <div style="margin-top: 8px; font-weight: 600; color: #fafafa; font-size: 8px;">Position</div>
+          <div>x: 2.5m</div>
+          <div>y: 3.1m</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. Zinc dark — Tailwind/Vercel aesthetic</h3>
+      <p>Dark zinc palette (no blue/purple cast), green for positive states, red for warnings. Clean borders, zero glow. Like Vercel dashboard or Linear app. Modern but restrained.</p>
+    </div>
+  </div>
+</div>

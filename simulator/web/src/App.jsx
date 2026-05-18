@@ -114,7 +114,6 @@ function LoadingFallback() {
 }
 
 export default function App() {
-  // Connect to WebSocket
   usePepperWebSocket('ws://localhost:5003');
 
   return (

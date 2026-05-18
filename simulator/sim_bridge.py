@@ -58,6 +58,8 @@ except ImportError:
     HAS_PYAUDIO = False
     print("[WARN] pyaudio not installed. Mic simulation disabled.")
 
+import subprocess
+
 from sim_state import PepperState
 
 
@@ -81,6 +83,31 @@ chat_history: list = []
 if HAS_LLM:
     brain = LLMClient(base_url=BRAIN_URL, name="deep", thinking=True, default_max_tokens=2048, timeout=180)
     print(f"[LLM] Brain: {BRAIN_URL}")
+
+# ─── Local TTS (Piper) ───────────────────────────────────────────
+PIPER_MODEL = os.path.expanduser("~/models/piper/en_US-amy-medium.onnx")
+_tts_process = None
+
+def speak_local(text: str):
+    """Generate and play speech with piper TTS in a background thread."""
+    global _tts_process
+    if _tts_process and _tts_process.poll() is None:
+        _tts_process.terminate()
+    try:
+        _tts_process = subprocess.Popen(
+            f'echo {_shell_quote(text)} | piper --model {PIPER_MODEL} --output-raw 2>/dev/null | aplay -r 22050 -f S16_LE -q 2>/dev/null',
+            shell=True,
+        )
+    except Exception as e:
+        print(f"[TTS] Piper error: {e}")
+
+def _shell_quote(s: str) -> str:
+    return "'" + s.replace("'", "'\\''") + "'"
+
+def stop_local_tts():
+    global _tts_process
+    if _tts_process and _tts_process.poll() is None:
+        _tts_process.terminate()
 
 
 # ─── Webcam Manager ───────────────────────────────────────────────
@@ -427,19 +454,20 @@ class BridgeHandler(BaseHTTPRequestHandler):
         speed = body.get("speed", 100)
         pitch = body.get("pitch", 100)
         pepper.say(text, language, speed, pitch)
-        # Estimate speech duration (~150ms per word)
-        word_count = len(text.split())
-        duration = max(1.0, word_count * 0.15 * (100 / speed))
-        # Schedule speech end
+        speak_local(text)
         def finish():
-            time.sleep(duration)
+            if _tts_process:
+                _tts_process.wait()
+            else:
+                time.sleep(max(1.0, len(text.split()) * 0.15 * (100 / speed)))
             pepper.finish_speaking()
         threading.Thread(target=finish, daemon=True).start()
         print(f"[SPEAK] ({language}) {text}")
-        return {"success": True, "data": {"duration_estimate": duration}}
+        return {"success": True, "data": {"duration_estimate": len(text.split()) * 0.15}}
 
     def _post_speak_stop(self, body):
         pepper.stop_speaking()
+        stop_local_tts()
         return {"success": True, "data": {}}
 
     def _post_audio_record(self, body):
@@ -605,8 +633,12 @@ class BridgeHandler(BaseHTTPRequestHandler):
         response_text, routed_to = self._query_llm(text)
 
         pepper.say(response_text, "en")
+        speak_local(response_text)
         def finish():
-            time.sleep(max(1.0, len(response_text.split()) * 0.15))
+            if _tts_process:
+                _tts_process.wait()
+            else:
+                time.sleep(max(1.0, len(response_text.split()) * 0.15))
             pepper.finish_speaking()
         threading.Thread(target=finish, daemon=True).start()
 
@@ -623,11 +655,11 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
     def _query_llm(self, text):
         """Try brain → mock fallback."""
-        system = "You are Pepper, a friendly humanoid robot. Reply in one or two sentences."
+        system = "You are Pepper, a friendly humanoid robot. Reply in one or two sentences. Do not assume or invent the user's name unless they told you."
         history = chat_history[:-1] if chat_history else []
 
         if brain:
-            resp = brain.chat(text, system=system, history=history, profile="social", max_tokens=1024)
+            resp = brain.chat(text, system=system, history=history, profile="social", max_tokens=2048, reasoning_budget=512)
             if resp.success and resp.spoken_text:
                 print(f"[CHAT] Brain: {resp.spoken_text} ({resp.tok_per_sec:.0f} tok/s)")
                 return resp.spoken_text, "deep"

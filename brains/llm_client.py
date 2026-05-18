@@ -159,11 +159,17 @@ class LLMResponse:
     def spoken_text(self) -> str:
         """Clean text for Pepper's TTS. Max 3 sentences."""
         text = self.content.strip()
-        if not text:
-            text = self._extract_from_thinking()
-        # Remove think tag blocks and stray tags
-        text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
+        # Strip think tags (closed and unclosed) — JARVIS pattern
+        text = re.sub(r'<think>[\s\S]*?</think>\s*', '', text).strip()
+        text = re.sub(r'<think>[\s\S]*$', '', text).strip()
         text = re.sub(r'</?think>', '', text).strip()
+        # Thinking-eats-content fallback: extract answer after </think> in reasoning
+        if not text and self.thinking:
+            after = self.thinking.split('</think>')[-1].strip() if '</think>' in self.thinking else ""
+            if after:
+                text = re.sub(r'</?think>', '', after).strip()
+            if not text:
+                text = self._extract_from_thinking()
         # Remove markdown
         for char in ["*", "#", "`", "~"]:
             text = text.replace(char, "")
