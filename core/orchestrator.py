@@ -22,6 +22,7 @@ from brains.llm_client import resolve_profile
 
 SYSTEM_PROMPT_PATH = "system/deep_brain.md"
 MAX_TOOL_ROUNDS = 3
+MAX_AUTO_CONTINUES = 2
 
 
 @dataclass
@@ -130,7 +131,7 @@ class Orchestrator:
                 return response
 
             if not response.has_tool_calls:
-                return response
+                break
 
             messages.append({
                 "role": "assistant",
@@ -158,6 +159,34 @@ class Orchestrator:
 
             print(f"[ORCH] Tool round {round_num + 1}: {[tc['name'] for tc in response.tool_calls]}")
 
+        response = self._auto_continue(response, messages)
+        return response
+
+    def _auto_continue(self, response: LLMResponse, messages: list) -> LLMResponse:
+        """If response was truncated (finish_reason=length), auto-continue up to MAX_AUTO_CONTINUES."""
+        if not response.success or response.finish_reason != "length":
+            return response
+
+        accumulated = response.content or ""
+
+        for attempt in range(MAX_AUTO_CONTINUES):
+            print(f"[ORCH] Auto-continue {attempt + 1} (truncated response)")
+            messages.append({"role": "assistant", "content": accumulated})
+            messages.append({"role": "user", "content": "Continue from where you stopped."})
+
+            cont = self.brain._call(
+                messages,
+                max_tokens=self.brain.default_max_tokens,
+                **resolve_profile("social", self.brain.thinking),
+            )
+            if not cont.success:
+                break
+
+            accumulated += " " + (cont.content or "")
+            if cont.finish_reason != "length":
+                break
+
+        response.content = accumulated.strip()
         return response
 
     def _build_messages(self, system: str, text: str,
@@ -252,6 +281,30 @@ class Orchestrator:
             if face.name != "unknown":
                 return face.name
         return None
+
+    def enroll_new_person(self, name: str) -> bool:
+        """Enroll the currently visible face as a new person."""
+        person_id = self.person_mem.id_from_name(name)
+        if self.person_mem.exists(person_id):
+            return False
+
+        frames = []
+        for _ in range(3):
+            frame = self.pepper.get_camera_frame()
+            if frame:
+                frames.append(frame)
+            import time as _t
+            _t.sleep(0.3)
+
+        if not frames:
+            return False
+
+        if not self.vision.enroll_face(person_id, frames):
+            return False
+
+        self.person_mem.create(person_id, name)
+        print(f"[ORCH] Enrolled new person: {name} ({person_id})")
+        return True
 
     def _detect_language(self) -> str:
         if self.current_person:

@@ -37,7 +37,8 @@ KOKORO_MODEL_ONNX = f"{MODEL_DIR}/kokoro-v1.0.int8.onnx"
 KOKORO_VOICES_BIN = f"{MODEL_DIR}/voices-v1.0.bin"
 
 # ─── PERCEPTION ───────────────────────────────────────────────────
-WHISPER_MODEL = "small"      # "base", "small", "medium"
+# Dev: "small" (244M). Prod: "distil-large-v3" (5.8x faster than large, ~1% WER gap)
+WHISPER_MODEL = os.getenv("PEPPER_WHISPER_MODEL", "small")
 WHISPER_DEVICE = "cpu"
 WHISPER_COMPUTE_TYPE = "int8"
 

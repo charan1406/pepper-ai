@@ -9,6 +9,8 @@ MMPROJ="$HOME/models/mmproj-F16.gguf"
 
 # Enable Kokoro TTS on GPU (ONNX + CUDA, ~200MB VRAM)
 export PEPPER_KOKORO_GPU=true
+# Use distil-large-v3 for STT (5.8x faster, ~1% WER gap vs large)
+export PEPPER_WHISPER_MODEL=distil-large-v3
 
 echo "============================================"
 echo "  PEPPER AI — Production Mode (6GB VRAM)"

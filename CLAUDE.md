@@ -63,7 +63,7 @@ Building a production-grade system connecting a **Pepper 1.8 robot** (NAOqi 2.5)
 | Service | Port | What |
 |---|---|---|
 | Simulator bridge | 5001 | Mock Pepper HTTP API |
-| Brain (4B, ngl=24) | 8090 | Thinking ON, budget=1024, ctx=8192 |
+| Brain (4B, ngl=99) | 8090 | Thinking ON, budget=1024, ctx=8192 |
 | 3D web UI | 5002 | React + Three.js Pepper simulator |
 | WebSocket state | 5003 | Real-time state to 3D frontend |
 
@@ -86,8 +86,8 @@ Building a production-grade system connecting a **Pepper 1.8 robot** (NAOqi 2.5)
 ```
 pepper-ai/
 ├── config.py                    # Central config — ports, paths, thresholds
-├── start_dev.sh                 # Launch 4B brain on 4GB (ngl 24)
-├── start_production.sh          # Launch 4B brain on 6GB (ngl 32 + vision)
+├── start_dev.sh                 # Launch 4B brain on 4GB (pinned llama.cpp b8861)
+├── start_production.sh          # Launch 4B on 6GB (ngl=99 + vision + GPU TTS)
 ├── chat.html                    # Browser chat interface for testing brains
 ├── test_phase1.py               # Phase 1 test suite + interactive chat
 ├── PHASE2_BUILD_GUIDE.md        # Detailed guide for building Phase 2
@@ -95,7 +95,7 @@ pepper-ai/
 │   ├── client.py                # ✅ HTTP client for bridge (all endpoints)
 │   └── bridge.py                # Real NAOqi bridge (Python 2.7, for real robot)
 ├── brains/
-│   └── llm_client.py            # ✅ Brain client (thinking, profiles, tools)
+│   └── llm_client.py            # ✅ httpx client (streaming, tool parsing, profiles)
 ├── simulator/
 │   ├── sim_bridge.py            # ✅ Mock bridge server (identical API to real)
 │   ├── sim_state.py             # ✅ Physics engine (smooth movement, joints, battery)
@@ -117,7 +117,7 @@ pepper-ai/
 │   └── (topics/, conversations/, knowledge/, locations/, daily_summary/, encodings/, maps/, logs/)
 ├── core/
 │   ├── router.py                # ✅ Two-tier routing (reflex/deep)
-│   ├── orchestrator.py          # ✅ Main loop: perception → route → brain → speak
+│   ├── orchestrator.py          # ✅ Agentic loop: tools → auto-continue → enrollment
 │   ├── behavior_tree.py         # ✅ py_trees autonomous behavior (exploration, idle)
 │   ├── supervisor.py            # ✅ Circuit breaker + graceful degradation
 │   ├── health.py                # ✅ Structured JSON logging + metrics
@@ -127,15 +127,15 @@ pepper-ai/
 │   ├── vision.py                # ✅ YOLO26n + InsightFace (dlib fallback)
 │   └── scene.py                 # ✅ Background scene state manager
 ├── memory/
-│   ├── vault.py                 # ✅ Obsidian vault read/write + backlinks
-│   └── person.py                # ✅ Person CRUD + quick context for LLM
+│   ├── vault.py                 # ✅ FTS5-indexed vault + backlinks
+│   └── person.py                # ✅ Person CRUD + enrollment + quick context
 ├── tools/
-│   └── web_search.py            # ✅ DuckDuckGo + caching
+│   └── web_search.py            # ✅ SearXNG search + caching
 ├── tts/
-│   ├── router.py                # ✅ Pepper native + edge-tts fallback
-│   └── filler.py                # ✅ Pre-cached filler audio for instant playback
+│   ├── router.py                # ✅ Kokoro-82M (GPU/CPU) + Pepper native + edge-tts
+│   └── filler.py                # ✅ Pre-cached filler audio (Kokoro offline)
 ├── brains/
-│   ├── llm_client.py            # ✅ Brain client (thinking, profiles, tools)
+│   ├── llm_client.py            # ✅ httpx client (streaming, tool parsing, profiles)
 │   └── reflex.py                # ✅ Keyword-matched instant commands
 ├── main.py                      # ✅ Entry point (orchestrator + BT + health)
 ├── test_phase1.py               # ✅ Phase 1 tests + interactive chat
@@ -153,12 +153,21 @@ pepper-ai/
 8. ✅ **Phase 8**: Production hardening (circuit breaker, watchdog, logging)
 
 ## Research-Based Upgrades (May 2026)
-- **YOLO26n** replaces YOLOv8n: 43% faster CPU inference (38.9ms vs 80ms), mAP 40.9
-- **InsightFace** replaces dlib: no compilation, ONNX-only, ArcFace embeddings
+- **SearXNG** replaces DuckDuckGo: real search results, self-hosted, unlimited
+- **httpx** replaces urllib: connection pooling, streaming, better timeouts
+- **SQLite FTS5** search index on vault: BM25 ranking, porter stemmer, auto-reindex
+- **Kokoro-82M** TTS: offline, GPU-accelerated on prod, replaces edge-tts dependency
+- **Agentic tool loop**: brain calls tools, reads results, loops (max 3 rounds for 4B)
+- **Observation masking**: per JetBrains/TUM Complexity Trap paper, 10-turn window
+- **Token budget enforcement**: all TOKEN_BUDGET_* limits from config enforced
+- **Auto-continue**: detects truncated responses (finish_reason=length), re-queries
+- **Person enrollment**: captures frames, enrolls face, creates person file
+- **distil-large-v3** STT option: 5.8x faster than whisper-large, ~1% WER gap
+- **YOLO26n**: 43% faster CPU inference (38.9ms vs 80ms), mAP 40.9
+- **InsightFace**: ONNX-only, ArcFace embeddings, no dlib compilation
 - **py_trees** behavior tree for autonomous exploration (utility-scored zones)
 - **Circuit breaker** pattern on all LLM calls with 4-level degradation ladder
-- **Structured JSON logging** with daily rotation + heartbeat watchdog
-- DuckDuckGo API confirmed still free/working; Brave/Tavily as future upgrade
+- **Pinned llama.cpp** build 8861 (cf8b0dbda) — avoids tracking master regressions
 - Silero VAD stays (torch.hub) — silero-vad-lite doesn't support Python 3.14 yet
 - Qwen3.6 released (April 2026) but staying on Qwen3.5 for stability
 
