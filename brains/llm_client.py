@@ -243,6 +243,7 @@ class LLMClient:
         self.default_max_tokens = default_max_tokens
         self.timeout = timeout
         self._http = httpx.Client(timeout=httpx.Timeout(timeout, connect=10))
+        self._retried_timeout = False
 
     # ─── Core API Call ───────────────────────────────────────────
 
@@ -312,18 +313,35 @@ class LLMClient:
             resp = self._http.post(url, json=payload)
             resp.raise_for_status()
             result = resp.json()
+        except httpx.TimeoutException as e:
+            elapsed = time.time() - t0
+            print(f"[LLM] {self.name} timeout after {elapsed:.1f}s: {e}")
+            if not self._retried_timeout:
+                self._retried_timeout = True
+                print(f"[LLM] Retrying once (cold-start grace)...")
+                return self._call(messages, max_tokens, tools, **sampling_params)
+            return LLMResponse(
+                success=False,
+                error=f"Timeout after {elapsed:.0f}s",
+                wall_time=elapsed,
+            )
         except httpx.ConnectError as e:
+            elapsed = time.time() - t0
+            print(f"[LLM] {self.name} connection failed: {e}")
             return LLMResponse(
                 success=False,
                 error=f"Connection to {self.name} brain failed: {e}",
-                wall_time=time.time() - t0,
+                wall_time=elapsed,
             )
         except Exception as e:
+            elapsed = time.time() - t0
+            print(f"[LLM] {self.name} error after {elapsed:.1f}s: {type(e).__name__}: {e}")
             return LLMResponse(
                 success=False, error=str(e),
-                wall_time=time.time() - t0,
+                wall_time=elapsed,
             )
 
+        self._retried_timeout = False
         return self._parse_result(result, time.time() - t0)
 
     def _call_stream(self, messages: List[Dict], max_tokens: int,
@@ -360,8 +378,14 @@ class LLMClient:
                         token = delta["content"]
                         content_parts.append(token)
                         yield token
+        except httpx.TimeoutException as e:
+            elapsed = time.time() - t0
+            print(f"[LLM] {self.name} stream timeout after {elapsed:.1f}s: {e}")
+            return LLMResponse(success=False, error=f"Stream timeout after {elapsed:.0f}s", wall_time=elapsed)
         except Exception as e:
-            return LLMResponse(success=False, error=str(e), wall_time=time.time() - t0)
+            elapsed = time.time() - t0
+            print(f"[LLM] {self.name} stream error after {elapsed:.1f}s: {type(e).__name__}: {e}")
+            return LLMResponse(success=False, error=str(e), wall_time=elapsed)
 
         wall_time = time.time() - t0
         content = "".join(content_parts)
