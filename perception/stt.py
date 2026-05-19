@@ -68,14 +68,14 @@ class SpeechToText:
         """Transcribe base64 WAV audio. Returns None if no speech detected."""
         audio = self._decode_wav(wav_b64)
 
-        # Speaker isolation: denoise + extract target speaker
-        if self.isolator is not None:
-            audio = self.isolator.isolate(audio, person_id=person_id)
-
-        # Energy gate — reject low-energy audio to prevent Whisper hallucinations
+        # Energy gate on raw audio — reject silence before spending time on isolation
         rms = np.sqrt(np.mean(audio ** 2))
         if rms < self.energy_threshold:
             return None
+
+        # Speaker isolation: denoise + extract target speaker
+        if self.isolator is not None:
+            audio = self.isolator.isolate(audio, person_id=person_id)
 
         # VAD check
         audio_tensor = torch.from_numpy(audio)

@@ -80,17 +80,22 @@ class SpeakerIsolator:
             print(f"[SPEAKER] Loaded {len(self._known_embeddings)} voice enrollment(s)")
 
     def denoise(self, audio_16k: np.ndarray) -> np.ndarray:
-        """Remove background noise via DeepFilterNet. Returns cleaned audio."""
+        """Remove background noise via DeepFilterNet. Returns cleaned 16kHz audio."""
         if self._df_model is None:
             return audio_16k
 
         try:
             import torch
+            import torchaudio
             from df.enhance import enhance
 
-            audio_tensor = torch.from_numpy(audio_16k).unsqueeze(0).float()
-            enhanced = enhance(self._df_model, self._df_state, audio_tensor)
-            return enhanced.squeeze(0).numpy()
+            t = torch.from_numpy(audio_16k).unsqueeze(0).float()
+            # DeepFilterNet expects 48kHz
+            t_48k = torchaudio.functional.resample(t, 16000, 48000)
+            enhanced = enhance(self._df_model, self._df_state, t_48k)
+            # Back to 16kHz
+            t_16k = torchaudio.functional.resample(enhanced, 48000, 16000)
+            return t_16k.squeeze(0).numpy()
         except Exception:
             return audio_16k
 
@@ -242,18 +247,28 @@ class SpeakerIsolator:
             return False
 
     def isolate(self, audio_16k: np.ndarray, person_id: Optional[str] = None) -> np.ndarray:
-        """Full isolation pipeline: denoise → extract target speaker."""
-        audio = self.denoise(audio_16k)
+        """Full isolation pipeline: denoise → extract target speaker.
+
+        DeepFilterNet removes non-speech noise (fans, HVAC) but can't separate
+        speech-from-speech — that requires enrolled voice extraction via Resemblyzer.
+        Only denoise when we have an enrollment target to extract afterward.
+        """
+        has_target = (
+            (person_id and person_id in self._known_embeddings)
+            or self._known_embeddings
+        )
+
+        audio = self.denoise(audio_16k) if has_target else audio_16k
 
         if person_id and person_id in self._known_embeddings:
-            return self.extract_speaker(audio, person_id)
+            return self.extract_speaker(audio, person_id).astype(np.float32)
 
         if self._known_embeddings:
             name, sim = self.identify_speaker(audio)
             if name != "unknown":
-                return self.extract_speaker(audio, name)
+                return self.extract_speaker(audio, name).astype(np.float32)
 
-        return self.extract_loudest(audio)
+        return audio_16k.astype(np.float32)
 
     @property
     def enrolled_speakers(self) -> list[str]:
