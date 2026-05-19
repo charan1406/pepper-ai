@@ -33,7 +33,8 @@ CONTEXT_SIZE = 8192          # Fits on 4GB with q4_0 KV cache + partial offload
 # ─── TTS ENGINE ──────────────────────────────────────────────────
 # "kokoro-gpu" on 6GB prod (real-time, offline), "kokoro-cpu" on dev, "edge" as fallback
 KOKORO_GPU = os.getenv("PEPPER_KOKORO_GPU", "false").lower() == "true"
-KOKORO_MODEL_ONNX = f"{MODEL_DIR}/kokoro-v1.0.int8.onnx"
+# fp16 for GPU (0.2x RTF, tensor cores), int8 for CPU (3.7x RTF, filler pre-cache only)
+KOKORO_MODEL_ONNX = f"{MODEL_DIR}/kokoro-v1.0.fp16.onnx" if KOKORO_GPU else f"{MODEL_DIR}/kokoro-v1.0.int8.onnx"
 KOKORO_VOICES_BIN = f"{MODEL_DIR}/voices-v1.0.bin"
 
 # ─── PERCEPTION ───────────────────────────────────────────────────
