@@ -1,6 +1,7 @@
 #!/bin/bash
 # Dev mode: single 4B brain on 4GB VRAM
 # Thinking ON, reasoning_budget=1024, ctx=8192
+# Pinned llama.cpp: build 8861 (cf8b0dbda) — do not update without testing
 
 LLAMA_BIN="$HOME/llama.cpp/build/bin/llama-server"
 MODEL="$HOME/models/Qwen3.5-4B.Q4_K_M.gguf"
