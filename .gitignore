@@ -53,3 +53,11 @@ simulator/web/dist/
 
 # Cached models
 *.zip
+
+# Local docs / reference (stay local, not in repo)
+docs/
+IMPROVEMENTS.md
+PHASE2_BUILD_GUIDE.md
+
+# Test files (local only)
+test_*.py
