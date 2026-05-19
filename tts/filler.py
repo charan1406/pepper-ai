@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Optional
 
 from pepper.client import PepperClient
+from tts.router import TTSRouter
 
 
 FILLER_PHRASES = {
@@ -37,15 +38,16 @@ DEFAULT_VOICE = {
 class FillerPlayer:
     """Pre-caches filler audio at startup for instant playback."""
 
-    def __init__(self, pepper: PepperClient, languages: Optional[list[str]] = None):
+    def __init__(self, pepper: PepperClient, languages: Optional[list[str]] = None,
+                 tts_router: Optional[TTSRouter] = None):
         self.pepper = pepper
+        self._tts = tts_router or TTSRouter(pepper)
         self._cache: dict[str, list[bytes]] = {}
         languages = languages or ["en"]
         for lang in languages:
             self._cache[lang] = self._render_fillers(lang)
 
     def play(self, language: str = "en"):
-        """Play a random filler. Returns immediately after queueing."""
         clips = self._cache.get(language, self._cache.get("en", []))
         if not clips:
             self.pepper.speak("One moment.", language="en")
@@ -54,12 +56,12 @@ class FillerPlayer:
         self.pepper.play_audio(clip)
 
     def _render_fillers(self, language: str) -> list[bytes]:
-        """Pre-render all filler phrases for a language via edge-tts."""
         phrases = FILLER_PHRASES.get(language, FILLER_PHRASES["en"])
-        voice = DEFAULT_VOICE.get(language, DEFAULT_VOICE["en"])
         clips = []
         for phrase in phrases:
-            wav = self._tts_to_wav(phrase, voice)
+            wav = self._tts.kokoro_to_wav(phrase, language)
+            if not wav:
+                wav = self._edge_tts_wav(phrase, language)
             if wav:
                 clips.append(wav)
                 print(f"[FILLER] Cached: \"{phrase}\" ({len(wav)} bytes)")
@@ -68,8 +70,8 @@ class FillerPlayer:
         print(f"[FILLER] {len(clips)}/{len(phrases)} clips cached for '{language}'")
         return clips
 
-    def _tts_to_wav(self, text: str, voice: str) -> Optional[bytes]:
-        """Render one phrase to WAV bytes via edge-tts."""
+    def _edge_tts_wav(self, text: str, language: str) -> Optional[bytes]:
+        voice = DEFAULT_VOICE.get(language, DEFAULT_VOICE["en"])
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
             tmp_path = tmp.name
         try:

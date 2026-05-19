@@ -30,6 +30,12 @@ BRAIN_MODEL = "qwen3.5-4b"
 ENABLE_MMPROJ = False        # Set True on 6GB+ GPU
 CONTEXT_SIZE = 8192          # Fits on 4GB with q4_0 KV cache + partial offload
 
+# ─── TTS ENGINE ──────────────────────────────────────────────────
+# "kokoro-gpu" on 6GB prod (real-time, offline), "kokoro-cpu" on dev, "edge" as fallback
+KOKORO_GPU = os.getenv("PEPPER_KOKORO_GPU", "false").lower() == "true"
+KOKORO_MODEL_ONNX = f"{MODEL_DIR}/kokoro-v1.0.int8.onnx"
+KOKORO_VOICES_BIN = f"{MODEL_DIR}/voices-v1.0.bin"
+
 # ─── PERCEPTION ───────────────────────────────────────────────────
 WHISPER_MODEL = "small"      # "base", "small", "medium"
 WHISPER_DEVICE = "cpu"

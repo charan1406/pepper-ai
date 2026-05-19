@@ -1,21 +1,25 @@
 #!/bin/bash
-# Production: single 4B brain on 6GB GPU + vision
-# Full GPU offload, mmproj enabled, larger context
+# Production: single 4B brain on 6GB GPU (RTX 3060) + vision + Kokoro GPU TTS
+# Full GPU offload, mmproj enabled, 8K context
+# Pinned llama.cpp: build 8861 (cf8b0dbda) — do not update without testing
 
 LLAMA_BIN="$HOME/llama.cpp/build/bin/llama-server"
 MODEL="$HOME/models/Qwen3.5-4B.Q4_K_M.gguf"
 MMPROJ="$HOME/models/mmproj-F16.gguf"
 
+# Enable Kokoro TTS on GPU (ONNX + CUDA, ~200MB VRAM)
+export PEPPER_KOKORO_GPU=true
+
 echo "============================================"
 echo "  PEPPER AI — Production Mode (6GB VRAM)"
-echo "  4B: thinking=ON + vision"
+echo "  4B: thinking=ON, ngl=99, vision, GPU TTS"
 echo "============================================"
 
 "$LLAMA_BIN" \
   -m "$MODEL" \
   --mmproj "$MMPROJ" \
   --host 0.0.0.0 --port 8090 \
-  -ngl 32 -np 1 -c 8192 \
+  -ngl 99 -np 1 -c 8192 \
   -fa on -ctk q4_0 -ctv q4_0 \
   --swa-full --no-mmap -fit off \
   --jinja \

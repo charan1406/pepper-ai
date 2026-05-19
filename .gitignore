@@ -44,6 +44,9 @@ pepper_session.conf
 # Obsidian config (personal)
 .obsidian/
 
+# Vault search index (generated)
+.search_index.db
+
 # Node (simulator web frontend)
 simulator/web/node_modules/
 simulator/web/dist/

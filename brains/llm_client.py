@@ -10,10 +10,10 @@ passed PER-REQUEST in the API body, not just as a server flag.
 import json
 import re
 import time
-import urllib.request
-import urllib.error
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Generator
+
+import httpx
 
 
 # ─── Sampling Profiles (from Qwen3.5 official docs) ─────────────
@@ -242,53 +242,26 @@ class LLMClient:
         self.thinking = thinking
         self.default_max_tokens = default_max_tokens
         self.timeout = timeout
+        self._http = httpx.Client(timeout=httpx.Timeout(timeout, connect=10))
 
     # ─── Core API Call ───────────────────────────────────────────
 
-    def _call(self, messages: List[Dict], max_tokens: int,
-              tools: Optional[List[Dict]] = None,
-              **sampling_params) -> LLMResponse:
-        """Make a raw API call to the llama-server."""
-        url = f"{self.base_url}/chat/completions"
-
+    def _build_payload(self, messages: List[Dict], max_tokens: int,
+                       tools: Optional[List[Dict]] = None,
+                       **sampling_params) -> Dict:
         payload = {
             "messages": messages,
             "max_tokens": max_tokens,
-            # CRITICAL: pass enable_thinking per-request
             "chat_template_kwargs": {
                 "enable_thinking": self.thinking
             },
         }
         payload.update(sampling_params)
-
         if tools:
             payload["tools"] = tools
+        return payload
 
-        data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(
-            url, data=data,
-            headers={"Content-Type": "application/json"}
-        )
-
-        t0 = time.time()
-        try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                result = json.loads(resp.read().decode("utf-8"))
-        except urllib.error.URLError as e:
-            return LLMResponse(
-                success=False,
-                error=f"Connection to {self.name} brain failed: {e}",
-                wall_time=time.time() - t0,
-            )
-        except Exception as e:
-            return LLMResponse(
-                success=False, error=str(e),
-                wall_time=time.time() - t0,
-            )
-
-        wall_time = time.time() - t0
-
-        # Parse response
+    def _parse_result(self, result: Dict, wall_time: float) -> LLMResponse:
         choice = result.get("choices", [{}])[0]
         msg = choice.get("message", {})
         usage = result.get("usage", {})
@@ -297,7 +270,6 @@ class LLMClient:
         content = msg.get("content", "") or ""
         thinking = msg.get("reasoning_content", "") or ""
 
-        # Parse tool calls
         tool_calls = []
         if msg.get("tool_calls"):
             for tc in msg["tool_calls"]:
@@ -309,10 +281,7 @@ class LLMClient:
         elif "<tool_call>" in content:
             content, tool_calls = _parse_tool_calls_xml(content)
 
-        # Clean stray think tags from content
         content = re.sub(r'</?think>', '', content).strip()
-
-        # ESCALATE check
         escalated = content.strip().upper() == self.ESCALATE_KEYWORD
 
         return LLMResponse(
@@ -328,6 +297,89 @@ class LLMClient:
             prompt_ms=timings.get("prompt_ms", 0),
             wall_time=wall_time,
             model=result.get("model", ""),
+            success=True,
+        )
+
+    def _call(self, messages: List[Dict], max_tokens: int,
+              tools: Optional[List[Dict]] = None,
+              **sampling_params) -> LLMResponse:
+        """Make a raw API call to the llama-server."""
+        url = f"{self.base_url}/chat/completions"
+        payload = self._build_payload(messages, max_tokens, tools, **sampling_params)
+
+        t0 = time.time()
+        try:
+            resp = self._http.post(url, json=payload)
+            resp.raise_for_status()
+            result = resp.json()
+        except httpx.ConnectError as e:
+            return LLMResponse(
+                success=False,
+                error=f"Connection to {self.name} brain failed: {e}",
+                wall_time=time.time() - t0,
+            )
+        except Exception as e:
+            return LLMResponse(
+                success=False, error=str(e),
+                wall_time=time.time() - t0,
+            )
+
+        return self._parse_result(result, time.time() - t0)
+
+    def _call_stream(self, messages: List[Dict], max_tokens: int,
+                     tools: Optional[List[Dict]] = None,
+                     **sampling_params) -> Generator[str, None, LLMResponse]:
+        """Streaming call — yields content tokens as they arrive, returns full LLMResponse."""
+        url = f"{self.base_url}/chat/completions"
+        payload = self._build_payload(messages, max_tokens, tools, **sampling_params)
+        payload["stream"] = True
+
+        t0 = time.time()
+        content_parts = []
+        thinking_parts = []
+        finish_reason = ""
+        model = ""
+
+        try:
+            with self._http.stream("POST", url, json=payload) as resp:
+                resp.raise_for_status()
+                for line in resp.iter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    data = line[6:]
+                    if data == "[DONE]":
+                        break
+                    chunk = json.loads(data)
+                    model = model or chunk.get("model", "")
+                    delta = chunk.get("choices", [{}])[0].get("delta", {})
+                    finish_reason = chunk.get("choices", [{}])[0].get("finish_reason") or finish_reason
+
+                    if delta.get("reasoning_content"):
+                        thinking_parts.append(delta["reasoning_content"])
+                    if delta.get("content"):
+                        token = delta["content"]
+                        content_parts.append(token)
+                        yield token
+        except Exception as e:
+            return LLMResponse(success=False, error=str(e), wall_time=time.time() - t0)
+
+        wall_time = time.time() - t0
+        content = "".join(content_parts)
+        thinking = "".join(thinking_parts)
+
+        tool_calls = []
+        if "<tool_call>" in content:
+            content, tool_calls = _parse_tool_calls_xml(content)
+        content = re.sub(r'</?think>', '', content).strip()
+
+        return LLMResponse(
+            content=content,
+            thinking=thinking,
+            tool_calls=tool_calls,
+            escalated=content.strip().upper() == self.ESCALATE_KEYWORD,
+            finish_reason=finish_reason,
+            wall_time=wall_time,
+            model=model,
             success=True,
         )
 
@@ -420,8 +472,8 @@ class LLMClient:
     def is_alive(self) -> bool:
         url = self.base_url.replace("/v1", "") + "/health"
         try:
-            with urllib.request.urlopen(urllib.request.Request(url), timeout=5) as resp:
-                return json.loads(resp.read()).get("status") == "ok"
+            resp = self._http.get(url, timeout=5)
+            return resp.json().get("status") == "ok"
         except Exception:
             return False
 
