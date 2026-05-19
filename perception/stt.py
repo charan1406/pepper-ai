@@ -29,20 +29,24 @@ class SpeechToText:
                  device: str = config.WHISPER_DEVICE,
                  compute_type: str = config.WHISPER_COMPUTE_TYPE,
                  vad_threshold: float = config.VAD_THRESHOLD,
+                 energy_threshold: float = config.AUDIO_ENERGY_THRESHOLD,
                  silence_timeout: float = config.SILENCE_TIMEOUT_MS / 1000,
-                 min_speech_duration: float = config.MIN_SPEECH_DURATION_MS / 1000):
+                 min_speech_duration: float = config.MIN_SPEECH_DURATION_MS / 1000,
+                 isolator=None):
         self.model = WhisperModel(model_size, device=device, compute_type=compute_type)
         self.vad_threshold = vad_threshold
+        self.energy_threshold = energy_threshold
         self.silence_timeout = silence_timeout
         self.min_speech_duration = min_speech_duration
+        self.isolator = isolator
 
         self.vad_model, self.vad_utils = torch.hub.load(
             'snakers4/silero-vad', 'silero_vad', trust_repo=True
         )
         self.get_speech_timestamps = self.vad_utils[0]
 
-    def transcribe_wav_bytes(self, wav_b64: str) -> Optional[TranscriptResult]:
-        """Transcribe base64 WAV audio. Returns None if no speech detected."""
+    def _decode_wav(self, wav_b64: str) -> np.ndarray:
+        """Decode base64 WAV to 16kHz float32 numpy array."""
         wav_bytes = base64.b64decode(wav_b64)
 
         with io.BytesIO(wav_bytes) as buf:
@@ -51,12 +55,27 @@ class SpeechToText:
                 sample_rate = wf.getframerate()
                 audio = np.frombuffer(frames, dtype=np.int16).astype(np.float32) / 32768.0
 
-        # Resample to 16kHz if needed
         if sample_rate != 16000:
             import torchaudio
             audio_tensor = torch.from_numpy(audio).unsqueeze(0)
             audio_tensor = torchaudio.functional.resample(audio_tensor, sample_rate, 16000)
             audio = audio_tensor.squeeze(0).numpy()
+
+        return audio
+
+    def transcribe_wav_bytes(self, wav_b64: str,
+                             person_id: Optional[str] = None) -> Optional[TranscriptResult]:
+        """Transcribe base64 WAV audio. Returns None if no speech detected."""
+        audio = self._decode_wav(wav_b64)
+
+        # Speaker isolation: denoise + extract target speaker
+        if self.isolator is not None:
+            audio = self.isolator.isolate(audio, person_id=person_id)
+
+        # Energy gate — reject low-energy audio to prevent Whisper hallucinations
+        rms = np.sqrt(np.mean(audio ** 2))
+        if rms < self.energy_threshold:
+            return None
 
         # VAD check
         audio_tensor = torch.from_numpy(audio)

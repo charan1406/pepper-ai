@@ -50,10 +50,16 @@ FACE_RECOGNITION_TOLERANCE = 0.4   # Cosine similarity threshold for InsightFace
 FACE_RECOGNITION_MODEL = "buffalo_sc"  # InsightFace model pack (lightweight)
 FACE_RECOGNITION_BACKEND = "insightface"  # "insightface" or "dlib" (legacy)
 
+# Speaker isolation
+SPEAKER_ISOLATION_ENABLED = True
+SPEAKER_SIMILARITY_THRESHOLD = 0.75  # Cosine sim for voice matching
+VOICE_ENCODINGS_DIR = "pepper_brain/voice_encodings"
+
 # ─── AUDIO ────────────────────────────────────────────────────────
 AUDIO_SAMPLE_RATE = 16000
 AUDIO_CHANNELS = 1
 VAD_THRESHOLD = 0.5
+AUDIO_ENERGY_THRESHOLD = 0.015  # RMS below this = background noise, skip Whisper
 SILENCE_TIMEOUT_MS = 700
 MIN_SPEECH_DURATION_MS = 250
 MAX_RECORDING_DURATION_S = 30

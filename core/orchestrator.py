@@ -11,6 +11,7 @@ from pepper.client import PepperClient
 from brains.llm_client import LLMClient, LLMResponse, Message
 from core.router import Router, Route
 from perception.stt import SpeechToText
+from perception.speaker import SpeakerIsolator
 from perception.vision import VisionPipeline
 from perception.scene import SceneManager
 from memory.vault import Vault
@@ -44,7 +45,8 @@ class Orchestrator:
 
         self.filler = FillerPlayer(self.pepper, config.FILLER_LANGUAGES)
 
-        self.stt = SpeechToText()
+        self.isolator = SpeakerIsolator() if config.SPEAKER_ISOLATION_ENABLED else None
+        self.stt = SpeechToText(isolator=self.isolator)
         self.vision = VisionPipeline()
         self.scene = SceneManager(self.pepper, self.vision)
 
@@ -258,16 +260,15 @@ class Orchestrator:
     def _listen_loop(self):
         while not self._stop.is_set():
             self.pepper.eyes_listening()
+            person_id = self._identify_speaker()
             wav = self.pepper.record_audio(seconds=5)
             if wav is None:
                 time.sleep(0.5)
                 continue
 
-            result = self.stt.transcribe_wav_bytes(wav)
+            result = self.stt.transcribe_wav_bytes(wav, person_id=person_id)
             if result is None or not result.text.strip():
                 continue
-
-            person_id = self._identify_speaker()
 
             print(f"[ORCH] Heard: \"{result.text}\" (person: {person_id or 'unknown'})")
             response = self.process_text(result.text, person_id=person_id)

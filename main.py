@@ -18,6 +18,7 @@ from core.supervisor import Supervisor
 from core.health import HealthMonitor
 from core.behavior_tree import build_tree, Blackboard
 from perception.stt import SpeechToText
+from perception.speaker import SpeakerIsolator
 from perception.vision import VisionPipeline
 from perception.scene import SceneManager
 from memory.vault import Vault
@@ -42,7 +43,8 @@ class PepperMain:
         self.filler = FillerPlayer(self.pepper, config.FILLER_LANGUAGES)
 
         # Perception
-        self.stt = SpeechToText()
+        self.isolator = SpeakerIsolator() if config.SPEAKER_ISOLATION_ENABLED else None
+        self.stt = SpeechToText(isolator=self.isolator)
         self.vision = VisionPipeline()
         self.scene = SceneManager(self.pepper, self.vision)
 
@@ -86,19 +88,19 @@ class PepperMain:
                     self.tree.tick()
 
                 self.pepper.eyes_listening()
+                person_id = self._identify_speaker()
                 wav = self.pepper.record_audio(seconds=4)
                 if wav is None:
                     time.sleep(0.5)
                     continue
 
-                result = self.stt.transcribe_wav_bytes(wav)
+                result = self.stt.transcribe_wav_bytes(wav, person_id=person_id)
                 if result is None or not result.text.strip():
                     self.bb.person_detected = False
                     continue
 
                 self.bb.person_detected = True
                 self.bb.idle_since = time.time()
-                person_id = self._identify_speaker()
 
                 print(f"[MAIN] Heard: \"{result.text}\" (person: {person_id or 'unknown'})")
                 self._process(result.text, person_id)
