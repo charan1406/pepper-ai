@@ -467,13 +467,13 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
     def _post_audio_play(self, body):
         try:
-            # Expect WAV bytes in body or a file path
             audio_data = body.get("raw", "")
             if audio_data:
                 wav_bytes = base64.b64decode(audio_data)
-                with open("/tmp/pepper_play.wav", "wb") as f:
+                path = "/tmp/pepper_play_%d.wav" % int(time.time() * 1000)
+                with open(path, "wb") as f:
                     f.write(wav_bytes)
-                naoqi.audio_player.playFile("/tmp/pepper_play.wav")
+                naoqi.audio_player.post.playFile(path)
             return {"success": True, "data": {}}
         except Exception as e:
             return self._error(str(e))
