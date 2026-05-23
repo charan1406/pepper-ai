@@ -19,6 +19,9 @@ import base64
 import sys
 import argparse
 import threading
+import wave
+import array
+import shutil
 
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from urlparse import urlparse, parse_qs
@@ -31,6 +34,14 @@ except ImportError:
     print("[ERROR] NAOqi SDK not found. Install it for Python 2.7.")
     print("        This bridge requires the real NAOqi SDK.")
     HAS_NAOQI = False
+
+try:
+    import cv2
+    import numpy as np
+    HAS_CV2 = True
+except ImportError:
+    HAS_CV2 = False
+    print("[WARN] cv2/numpy not found — camera will return raw RGB instead of JPEG")
 
 # ─── Configuration ───────────────────────────────────────────────
 ROBOT_IP = "192.168.1.100"
@@ -122,6 +133,42 @@ class NAOqiManager(object):
 
 
 naoqi = None  # initialized in main()
+
+
+def _extract_mono(src, dst, channel=0):
+    """Extract a single channel from a multi-channel WAV file."""
+    wf = wave.open(src, 'rb')
+    n_channels = wf.getnchannels()
+    sampwidth = wf.getsampwidth()
+    framerate = wf.getframerate()
+    raw = wf.readframes(wf.getnframes())
+    wf.close()
+
+    if n_channels == 1:
+        shutil.copy2(src, dst)
+        return framerate
+
+    if sampwidth == 2:
+        fmt = 'h'
+    elif sampwidth == 4:
+        fmt = 'i'
+    else:
+        fmt = 'b'
+
+    samples = array.array(fmt)
+    samples.fromstring(raw)
+
+    mono = array.array(fmt)
+    for i in range(channel, len(samples), n_channels):
+        mono.append(samples[i])
+
+    wf_out = wave.open(dst, 'wb')
+    wf_out.setnchannels(1)
+    wf_out.setsampwidth(sampwidth)
+    wf_out.setframerate(framerate)
+    wf_out.writeframes(mono.tostring())
+    wf_out.close()
+    return framerate
 
 
 # ─── Bridge Handler ──────────────────────────────────────────────
@@ -220,19 +267,27 @@ class BridgeHandler(BaseHTTPRequestHandler):
             if img is None:
                 return self._error("Camera returned None")
 
-            # img[6] contains raw image bytes
             raw = img[6]
-            # Convert to JPEG using PIL or raw base64
-            b64 = base64.b64encode(raw)
+            img_w, img_h = img[0], img[1]
+
+            if HAS_CV2:
+                frame = np.frombuffer(raw, dtype=np.uint8).reshape((img_h, img_w, 3))
+                frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                _, jpeg = cv2.imencode('.jpg', frame_bgr, [cv2.IMWRITE_JPEG_QUALITY, 85])
+                b64 = base64.b64encode(jpeg.tobytes())
+                fmt = "jpeg"
+            else:
+                b64 = base64.b64encode(raw)
+                fmt = "raw_rgb"
 
             return {
                 "success": True,
                 "data": {
                     "image": b64,
-                    "width": img[0],
-                    "height": img[1],
+                    "width": img_w,
+                    "height": img_h,
                     "camera": "top" if camera_idx == 0 else "bottom",
-                    "format": "raw_rgb",
+                    "format": fmt,
                     "timestamp": time.time()
                 }
             }
@@ -375,15 +430,21 @@ class BridgeHandler(BaseHTTPRequestHandler):
     def _post_audio_record(self, body):
         try:
             seconds = body.get("seconds", 5)
-            naoqi.audio_device.startMicrophonesRecording("/tmp/pepper_rec.wav")
+            raw_path = "/tmp/pepper_rec_raw.wav"
+            mono_path = "/tmp/pepper_rec.wav"
+
+            naoqi.audio_device.startMicrophonesRecording(raw_path)
             time.sleep(seconds)
             naoqi.audio_device.stopMicrophonesRecording()
-            # Read the file and return base64
-            with open("/tmp/pepper_rec.wav", "rb") as f:
+
+            # NAOqi records 4-channel 48kHz — extract front mic as mono
+            sample_rate = _extract_mono(raw_path, mono_path, channel=0)
+
+            with open(mono_path, "rb") as f:
                 audio_b64 = base64.b64encode(f.read())
             return {"success": True, "data": {
                 "audio": audio_b64, "duration": seconds,
-                "sample_rate": 16000, "format": "wav"
+                "sample_rate": sample_rate, "format": "wav"
             }}
         except Exception as e:
             return self._error(str(e))
