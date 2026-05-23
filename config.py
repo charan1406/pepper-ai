@@ -8,6 +8,8 @@ Change BRIDGE_URL to swap between simulator and real Pepper.
 import os
 from pathlib import Path
 
+_PROJECT_ROOT = Path(__file__).resolve().parent
+
 # ─── BRIDGE CONNECTION ───────────────────────────────────────────
 BRIDGE_URL = os.getenv("PEPPER_BRIDGE_URL", "http://localhost:5001")
 
@@ -53,7 +55,7 @@ FACE_RECOGNITION_BACKEND = "insightface"  # "insightface" or "dlib" (legacy)
 # Speaker isolation
 SPEAKER_ISOLATION_ENABLED = True
 SPEAKER_SIMILARITY_THRESHOLD = 0.75  # Cosine sim for voice matching
-VOICE_ENCODINGS_DIR = "pepper_brain/voice_encodings"
+VOICE_ENCODINGS_DIR = str(_PROJECT_ROOT / "pepper_brain" / "voice_encodings")
 
 # ─── AUDIO ────────────────────────────────────────────────────────
 AUDIO_SAMPLE_RATE = 16000
@@ -78,7 +80,7 @@ EDGE_TTS_VOICE_DEFAULT = "en-US-AriaNeural"
 FILLER_LANGUAGES = ["en", "de"]
 
 # ─── MEMORY / OBSIDIAN BRAIN ─────────────────────────────────────
-BRAIN_VAULT_PATH = "./pepper_brain"
+BRAIN_VAULT_PATH = str(_PROJECT_ROOT / "pepper_brain")
 MAX_QUICK_CONTEXT_ITEMS = 10
 MAX_CONVERSATION_HISTORY = 20
 MEMORY_CONSOLIDATION_THRESHOLD = 10

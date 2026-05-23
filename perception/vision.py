@@ -40,7 +40,7 @@ class VisionPipeline:
                  yolo_confidence: float = config.YOLO_CONFIDENCE,
                  face_tolerance: float = config.FACE_RECOGNITION_TOLERANCE,
                  face_model: str = config.FACE_RECOGNITION_MODEL,
-                 encodings_dir: str = "pepper_brain/encodings"):
+                 encodings_dir: str = None):
         from ultralytics import YOLO
         self.yolo = YOLO(yolo_model)
         self.yolo.to("cpu")
@@ -52,6 +52,9 @@ class VisionPipeline:
         self._face_app = None
 
         self.known_encodings: Dict[str, np.ndarray] = {}
+        if encodings_dir is None:
+            from pathlib import Path as _P
+            encodings_dir = str(_P(config.BRAIN_VAULT_PATH) / "encodings")
         self.encodings_dir = Path(encodings_dir)
 
         self._init_face_backend()

@@ -259,6 +259,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
             return self._error(str(e))
 
     def _get_camera_frame(self, p):
+        subscriber = None
         try:
             camera_idx = 0 if p.get("camera", ["top"])[0] == "top" else 1
             width = int(p.get("width", [640])[0])
@@ -268,11 +269,11 @@ class BridgeHandler(BaseHTTPRequestHandler):
             res_map = {(320, 240): 1, (640, 480): 2, (1280, 960): 3}
             resolution = res_map.get((width, height), 2)
 
+            sub_name = "pb_%d" % int(time.time() * 1000)
             subscriber = naoqi.video.subscribeCamera(
-                "pepper_bridge", camera_idx, resolution, 11, 10  # 11=RGB, 10fps
+                sub_name, camera_idx, resolution, 11, 10  # 11=RGB, 10fps
             )
             img = naoqi.video.getImageRemote(subscriber)
-            naoqi.video.unsubscribe(subscriber)
 
             if img is None:
                 return self._error("Camera returned None")
@@ -303,6 +304,12 @@ class BridgeHandler(BaseHTTPRequestHandler):
             }
         except Exception as e:
             return self._error("Camera error: %s" % str(e))
+        finally:
+            if subscriber is not None:
+                try:
+                    naoqi.video.unsubscribe(subscriber)
+                except Exception:
+                    pass
 
     def _get_audio_stream(self, p):
         # Audio streaming is complex with NAOqi; return a chunk via ALAudioDevice
@@ -446,8 +453,9 @@ class BridgeHandler(BaseHTTPRequestHandler):
     def _post_audio_record(self, body):
         try:
             seconds = body.get("seconds", 5)
-            raw_path = "/tmp/pepper_rec_raw.wav"
-            mono_path = "/tmp/pepper_rec.wav"
+            ts = int(time.time() * 1000)
+            raw_path = "/tmp/pepper_rec_raw_%d.wav" % ts
+            mono_path = "/tmp/pepper_rec_%d.wav" % ts
 
             naoqi.audio_device.startMicrophonesRecording(raw_path)
             time.sleep(seconds)
@@ -458,6 +466,14 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
             with open(mono_path, "rb") as f:
                 audio_b64 = base64.b64encode(f.read())
+
+            try:
+                import os as _os
+                _os.remove(raw_path)
+                _os.remove(mono_path)
+            except OSError:
+                pass
+
             return {"success": True, "data": {
                 "audio": audio_b64, "duration": seconds,
                 "sample_rate": sample_rate, "format": "wav"
@@ -473,7 +489,20 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 path = "/tmp/pepper_play_%d.wav" % int(time.time() * 1000)
                 with open(path, "wb") as f:
                     f.write(wav_bytes)
-                naoqi.audio_player.post.playFile(path)
+                task_id = naoqi.audio_player.post.playFile(path)
+
+                def _cleanup(tid, fpath):
+                    try:
+                        naoqi.audio_player.wait(tid, 30000)
+                    except Exception:
+                        time.sleep(5)
+                    try:
+                        import os as _os
+                        _os.remove(fpath)
+                    except OSError:
+                        pass
+
+                threading.Thread(target=_cleanup, args=(task_id, path), daemon=True).start()
             return {"success": True, "data": {}}
         except Exception as e:
             return self._error(str(e))
@@ -644,7 +673,10 @@ class BridgeHandler(BaseHTTPRequestHandler):
             x = body.get("x", 0)
             y = body.get("y", 0)
             theta = body.get("theta", 0)
-            naoqi.navigation.post.navigateToInMap([x, y, theta])
+            try:
+                naoqi.navigation.post.navigateToInMap([x, y, theta])
+            except Exception:
+                naoqi.motion.post.moveTo(x, y, theta)
             return {"success": True, "data": {"x": x, "y": y, "theta": theta}}
         except Exception as e:
             return self._error(str(e))
