@@ -24,6 +24,7 @@ import array
 import shutil
 
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+from SocketServer import ThreadingMixIn
 from urlparse import urlparse, parse_qs
 
 # NAOqi SDK — must be installed for Python 2.7
@@ -171,6 +172,15 @@ def _extract_mono(src, dst, channel=0):
     return framerate
 
 
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    daemon_threads = True
+
+
+# TTS task tracking for speak_and_wait
+_speak_lock = threading.Lock()
+_speak_task_id = None
+
+
 # ─── Bridge Handler ──────────────────────────────────────────────
 class BridgeHandler(BaseHTTPRequestHandler):
     """HTTP handler — identical API to sim_bridge.py."""
@@ -305,15 +315,16 @@ class BridgeHandler(BaseHTTPRequestHandler):
             return self._error(str(e))
 
     def _get_speak_status(self, p):
+        global _speak_task_id
         try:
-            status = naoqi.tts.getVolume() >= 0  # proxy alive check
-            # NAOqi doesn't have a direct "is_speaking" method easily
-            # We check ALMemory for the TTS status event
+            with _speak_lock:
+                task_id = _speak_task_id
             is_speaking = False
-            try:
-                is_speaking = naoqi.memory.getData("ALTextToSpeech/Status") == "speaking"
-            except Exception:
-                pass
+            if task_id is not None:
+                is_speaking = naoqi.tts.isRunning(task_id)
+                if not is_speaking:
+                    with _speak_lock:
+                        _speak_task_id = None
             return {"success": True, "data": {"is_speaking": is_speaking}}
         except Exception as e:
             return self._error(str(e))
@@ -408,21 +419,26 @@ class BridgeHandler(BaseHTTPRequestHandler):
             self._send_json(self._error("Unknown: %s" % path), 404)
 
     def _post_speak(self, body):
+        global _speak_task_id
         try:
             text = body.get("text", "")
             lang = body.get("language", "en")
             naoqi.tts.setLanguage({"en": "English", "de": "German", "fr": "French",
                                     "it": "Italian", "es": "Spanish", "ja": "Japanese",
                                     "zh": "Chinese", "ar": "Arabic"}.get(lang, "English"))
-            # Non-blocking say
             task_id = naoqi.tts.post.say(text)
+            with _speak_lock:
+                _speak_task_id = task_id
             return {"success": True, "data": {"task_id": task_id}}
         except Exception as e:
             return self._error(str(e))
 
     def _post_speak_stop(self, body):
+        global _speak_task_id
         try:
             naoqi.tts.stopAll()
+            with _speak_lock:
+                _speak_task_id = None
             return {"success": True, "data": {}}
         except Exception as e:
             return self._error(str(e))
@@ -683,7 +699,7 @@ def main():
         print("        Check IP address and ensure robot is on.")
         sys.exit(1)
 
-    server = HTTPServer(("0.0.0.0", args.bridge_port), BridgeHandler)
+    server = ThreadedHTTPServer(("0.0.0.0", args.bridge_port), BridgeHandler)
     print("[BRIDGE] Listening on port %d" % args.bridge_port)
 
     try:
